@@ -27,3 +27,18 @@ ol li::before{content:counter(s);flex:none;width:30px;height:30px;border-radius:
 [hidden]{display:none!important}
 :root{color-scheme:only dark}
 @media (prefers-color-scheme:dark){:root{color-scheme:only dark}}
+/* iPhone install guide: Apple has no install prompt, so the button opens these steps with an arrow at Safari's Share button */
+.guide{position:fixed;inset:0;z-index:10;background:rgba(5,8,35,.72);display:flex;align-items:flex-end;justify-content:center;padding:16px 16px calc(96px + env(safe-area-inset-bottom))}
+.guide.top{align-items:flex-start;padding-top:calc(90px + env(safe-area-inset-top));padding-bottom:16px}
+.gsheet{position:relative;width:100%;max-width:420px;background:linear-gradient(180deg,#3656e0,#2337b4 55%,#1b2a94);border-radius:24px;padding:22px 18px 20px;text-align:left;
+  box-shadow:inset 0 0 0 2px rgba(170,195,255,.6),0 0 0 4px #0d1460,0 0 0 6px rgba(255,216,77,.55),0 24px 60px rgba(0,0,30,.6);animation:gin .35s cubic-bezier(.3,1.4,.5,1)}
+.gsheet h2{margin:0 0 6px;text-align:center;font:400 28px "Lilita One","Nunito",sans-serif;color:#ffe066;text-shadow:0 3px 0 #b55400}
+.gic{display:block;width:64px;height:64px;border-radius:16px;margin:0 auto 8px;box-shadow:0 6px 16px rgba(0,0,30,.5)}
+.gsub{margin:0 0 14px;text-align:center;color:#d3dcff;font-weight:700;font-size:15px;line-height:1.35}
+.gx{position:absolute;top:10px;right:10px;width:36px;height:36px;border:0;border-radius:12px;background:rgba(255,255,255,.14);color:#fff;font-size:18px;cursor:pointer}
+.garrow{position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom));width:60px;height:60px;margin-left:-30px;color:#ffd84d;filter:drop-shadow(0 4px 10px rgba(0,0,0,.5));animation:gbob 1s ease-in-out infinite}
+.guide.top .garrow{left:auto;right:calc(18px + env(safe-area-inset-right));bottom:auto;top:calc(10px + env(safe-area-inset-top));margin:0;transform:rotate(180deg);animation:gbobup 1s ease-in-out infinite}
+.garrow svg{width:100%;height:100%}
+@keyframes gbob{50%{transform:translateY(10px)}}
+@keyframes gbobup{0%,100%{transform:rotate(180deg)}50%{transform:rotate(180deg) translateY(10px)}}
+@keyframes gin{from{transform:translateY(30px);opacity:0}}

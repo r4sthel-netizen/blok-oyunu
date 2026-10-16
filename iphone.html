@@ -27,6 +27,8 @@
 
   <div class="note" id="inapp" hidden>Bu sayfa bir uygulamanın içinde açıldı. Sağ üstteki <span class="k">···</span> ya da <span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M8 7l4-4 4 4"/><path d="M6 11H5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-1"/></svg></span> düğmesinden <b>Safari'de aç</b>'a dokun, sonra buradaki adımları uygula.</div>
 
+  <button class="btn" id="install">Telefona yükle</button>
+
   <div class="card">
     <h2>Ana ekrana ekle</h2>
     <ol>
@@ -37,6 +39,21 @@
   </div>
 
   <a class="btn alt" href="./">Yüklemeden hemen oyna</a>
+
+  <div class="guide" id="guide" hidden>
+    <div class="gsheet" role="dialog" aria-labelledby="gT">
+      <button class="gx" id="gClose" aria-label="Kapat">✕</button>
+      <img class="gic" src="icons/icon-192.png" alt="">
+      <h2 id="gT">Blopu'yu yükle</h2>
+      <p class="gsub">Apple, yüklemeyi Safari'nin kendi menüsünden yapmaya izin veriyor. 3 dokunuşta biter:</p>
+      <ol>
+        <li><span><span id="gWhere">Alttaki</span> <span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M8 7l4-4 4 4"/><path d="M6 11H5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-1"/></svg> Paylaş</span> düğmesine dokun. Yeni iPhone'larda önce <span class="k">···</span> düğmesine dokun.</span></li>
+        <li><span><span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8M8 12h8"/></svg> Ana Ekrana Ekle</span>'ye dokun.</span></li>
+        <li><span>Sağ üstte <b>Ekle</b>'ye dokun. Blopu ana ekranında!</span></li>
+      </ol>
+    </div>
+    <div class="garrow" id="gArrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v17M5 13l7 7 7-7"/></svg></div>
+  </div>
   <p class="small">Kurulunca tam ekran açılır ve internetsiz de çalışır. Android kullanan arkadaşın için: <a href="android.html">Android sayfası</a></p>
 </main>
 <script>
@@ -45,6 +62,12 @@
   if (navigator.standalone || matchMedia('(display-mode: standalone)').matches) { location.replace('./'); return; }
   if (/Android/.test(ua)) { location.replace('android.html'); return; }
   if (/FBAN|FBAV|Instagram|Line\/|TikTok|Snapchat|GSA\//.test(ua)) document.getElementById('inapp').hidden = false;
+  const g = document.getElementById('guide');
+  const ipad = /iPad/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);   // iPad Safari keeps Share at the top right
+  if (ipad) { g.classList.add('top'); document.getElementById('gWhere').textContent = 'Sağ üstteki'; }
+  document.getElementById('install').addEventListener('click', () => { g.hidden = false; });
+  document.getElementById('gClose').addEventListener('click', () => { g.hidden = true; });
+  g.addEventListener('click', e => { if (e.target === g) g.hidden = true; });
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 })();
 </script>
