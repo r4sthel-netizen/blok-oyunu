@@ -1,0 +1,27 @@
+*{box-sizing:border-box}
+html{background:#0b1040}
+html,body{margin:0}
+body{min-height:100vh;min-height:100dvh}
+body{font-family:"Nunito",system-ui,-apple-system,sans-serif;color:#fff;background:radial-gradient(130% 75% at 50% 0%,#2f4bb8 0%,#22338f 32%,#1a2574 60%,#0b1040 100%) fixed;
+  padding:max(24px,env(safe-area-inset-top)) max(18px,env(safe-area-inset-right)) max(28px,env(safe-area-inset-bottom)) max(18px,env(safe-area-inset-left));
+  -webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
+main{max-width:440px;margin:0 auto;display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px}
+.ic{width:104px;height:104px;border-radius:24px;box-shadow:0 10px 28px rgba(0,0,30,.5)}
+h1{font-family:"Lilita One","Nunito",sans-serif;font-weight:400;font-size:46px;line-height:1;margin:4px 0 0;color:#ffd84d;text-shadow:0 3px 0 #c8650a,0 6px 14px rgba(0,0,40,.5)}
+.sub{margin:0;color:#b8c4ff;font-weight:700;font-size:17px}
+.btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:62px;border:0;border-radius:20px;font:400 24px "Lilita One","Nunito",sans-serif;text-decoration:none;cursor:pointer;
+  color:#5a2a00;background:linear-gradient(#fff0a0,#ffd84d 45%,#ffab1a);box-shadow:inset 0 -5px 0 rgba(200,101,10,.6),0 6px 16px rgba(0,0,40,.45)}
+.btn:active{transform:translateY(2px)}
+.btn.alt{color:#fff;background:rgba(255,255,255,.1);box-shadow:inset 0 0 0 2px rgba(255,255,255,.18);font-size:20px;min-height:54px}
+.card{width:100%;background:rgba(255,255,255,.08);border-radius:20px;padding:16px;text-align:left;box-shadow:inset 0 0 0 2px rgba(160,185,255,.16)}
+.card h2{margin:0 0 10px;font:400 22px "Lilita One","Nunito",sans-serif;color:#ffd84d}
+ol{margin:0;padding:0;list-style:none;counter-reset:s;display:flex;flex-direction:column;gap:12px}
+ol li{counter-increment:s;display:flex;gap:12px;align-items:flex-start;font-weight:700;font-size:17px;line-height:1.35}
+ol li::before{content:counter(s);flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:#ffd84d;color:#5a2a00;font:400 18px "Lilita One","Nunito",sans-serif}
+.k{display:inline-flex;align-items:center;gap:4px;padding:1px 8px;border-radius:8px;background:rgba(255,255,255,.16);white-space:nowrap}
+.k svg{width:18px;height:18px}
+.note{width:100%;border-radius:16px;padding:12px 14px;background:rgba(255,107,90,.18);box-shadow:inset 0 0 0 2px rgba(255,107,90,.45);font-weight:700;text-align:left;line-height:1.35}
+.ok{background:rgba(62,224,122,.16);box-shadow:inset 0 0 0 2px rgba(62,224,122,.5)}
+.small{color:#b8c4ff;font-size:14px;font-weight:600;margin:0}
+.small a{color:#fff}
+[hidden]{display:none!important}

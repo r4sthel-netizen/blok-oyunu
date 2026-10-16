@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1a2574">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Blopu">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="stylesheet" href="fonts/fonts.css">
+<link rel="stylesheet" href="kur.css">
+<title>Blopu · Android</title>
+<meta property="og:title" content="Blopu - Android'e yükle">
+<meta property="og:description" content="Blokları yerleştir, satırları patlat. Ücretsiz, internetsiz de çalışır.">
+<meta property="og:image" content="icons/icon-512.png">
+</head>
+<body>
+<main>
+  <img class="ic" src="icons/icon-192.png" alt="">
+  <h1>Blopu</h1>
+  <p class="sub">Blokları yerleştir, satırları patlat.</p>
+
+  <button class="btn" id="install" hidden>Telefona yükle</button>
+  <div class="note ok" id="done" hidden>Blopu yüklendi! Ana ekrandaki <b>Blopu</b> simgesinden aç.</div>
+  <div class="note" id="inapp" hidden>Bu sayfa bir uygulamanın içinde açıldı. Sağ üstteki <span class="k">⋮</span> menüsünden <b>Chrome'da aç</b>'a dokun, sonra buradaki adımları uygula.</div>
+
+  <div class="card" id="steps">
+    <h2 id="stepsH">Ana ekrana ekle</h2>
+    <ol>
+      <li><span>Sağ üstteki <span class="k">⋮</span> menüsüne dokun. Menüde <b>Chrome'da aç</b> varsa önce ona dokun.</span></li>
+      <li><span><b>Uygulamayı yükle</b> ya da <b>Ana ekrana ekle</b>'ye dokun.</span></li>
+      <li><span><b>Yükle</b>'ye dokun. Blopu simgesi ana ekrana gelir.</span></li>
+    </ol>
+  </div>
+
+  <a class="btn alt" href="./">Yüklemeden hemen oyna</a>
+  <p class="small">Kurulunca tam ekran açılır ve internetsiz de çalışır. iPhone kullanan arkadaşın için: <a href="iphone.html">iPhone sayfası</a></p>
+</main>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const ua = navigator.userAgent;
+  const standalone = matchMedia('(display-mode: standalone)').matches;
+  if (standalone) { location.replace('./'); return; }
+  if (/iPhone|iPad|iPod/.test(ua)) { location.replace('iphone.html'); return; }
+  if (/; wv\)|FBAN|FBAV|Instagram|Line\/|TikTok|Snapchat/.test(ua)) $('inapp').hidden = false;
+  let ev = null;
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault(); ev = e;
+    $('install').hidden = false; $('inapp').hidden = true; $('stepsH').textContent = 'Düğme çıkmazsa';
+  });
+  $('install').addEventListener('click', async () => {
+    if (!ev) return;
+    ev.prompt();
+    const r = await ev.userChoice.catch(() => null);
+    if (r && r.outcome === 'accepted') { $('install').hidden = true; $('done').hidden = false; }
+    ev = null;
+  });
+  window.addEventListener('appinstalled', () => { $('install').hidden = true; $('steps').hidden = true; $('done').hidden = false; });
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+})();
+</script>
+</body>
+</html>

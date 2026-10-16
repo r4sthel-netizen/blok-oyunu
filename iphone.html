@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1a2574">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Blopu">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="stylesheet" href="fonts/fonts.css">
+<link rel="stylesheet" href="kur.css">
+<title>Blopu · iPhone</title>
+<meta property="og:title" content="Blopu - iPhone'a yükle">
+<meta property="og:description" content="Blokları yerleştir, satırları patlat. Ücretsiz, internetsiz de çalışır.">
+<meta property="og:image" content="icons/icon-512.png">
+</head>
+<body>
+<main>
+  <img class="ic" src="icons/icon-192.png" alt="">
+  <h1>Blopu</h1>
+  <p class="sub">Blokları yerleştir, satırları patlat.</p>
+
+  <div class="note" id="inapp" hidden>Bu sayfa bir uygulamanın içinde açıldı. Sağ üstteki <span class="k">···</span> ya da <span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M8 7l4-4 4 4"/><path d="M6 11H5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-1"/></svg></span> düğmesinden <b>Safari'de aç</b>'a dokun, sonra buradaki adımları uygula.</div>
+
+  <div class="card">
+    <h2>Ana ekrana ekle</h2>
+    <ol>
+      <li><span>Alttaki <span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M8 7l4-4 4 4"/><path d="M6 11H5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-1"/></svg> Paylaş</span> düğmesine dokun. Görmüyorsan önce <span class="k">···</span> düğmesine dokun.</span></li>
+      <li><span>Listeyi aşağı kaydır, <span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8M8 12h8"/></svg> Ana Ekrana Ekle</span>'ye dokun.</span></li>
+      <li><span>Sağ üstte <b>Ekle</b>'ye dokun. Blopu simgesi ana ekrana gelir.</span></li>
+    </ol>
+  </div>
+
+  <a class="btn alt" href="./">Yüklemeden hemen oyna</a>
+  <p class="small">Kurulunca tam ekran açılır ve internetsiz de çalışır. Android kullanan arkadaşın için: <a href="android.html">Android sayfası</a></p>
+</main>
+<script>
+(() => {
+  const ua = navigator.userAgent;
+  if (navigator.standalone || matchMedia('(display-mode: standalone)').matches) { location.replace('./'); return; }
+  if (/Android/.test(ua)) { location.replace('android.html'); return; }
+  if (/FBAN|FBAV|Instagram|Line\/|TikTok|Snapchat|GSA\//.test(ua)) document.getElementById('inapp').hidden = false;
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+})();
+</script>
+</body>
+</html>
