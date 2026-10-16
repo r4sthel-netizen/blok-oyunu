@@ -1,0 +1,2238 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Blok Patlat</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;800&display=swap">
+<style>
+/* Layout: one-screen phone game. Screens: menu, level map, online lobby, leaderboard, game. Game = header HUD (+ duel bar) over one canvas holding the 8x8 board and the three-piece tray. Deliberately single (dark) theme: a night-blue toy box with candy blocks. */
+:root{
+  --bg:#1a1f3a; --bg-deep:#10132a; --panel:#232947; --panel-2:#2b3254; --line:rgba(255,255,255,.07); --fg:#eef0fa; --muted:#a3aacb; --gold:#ffcb57; --hot:#ff8a5c; --mint:#5ad69a; --sky:#5bc4f2; --lock:#2b3155; --ink:#21183f;
+  --font-display:"Fredoka","Trebuchet MS",system-ui,sans-serif;
+  --font-body:"Nunito",system-ui,sans-serif;
+  color-scheme:dark;
+}
+html,body{height:100%}
+[hidden]{display:none!important}
+body{
+  margin:0; box-sizing:border-box; overflow:hidden;
+  background:radial-gradient(120% 70% at 50% 0%, #283062 0%, var(--bg) 48%, var(--bg-deep) 100%);
+  background-color:var(--bg);
+  color:var(--fg); font-family:var(--font-body);
+  padding-left:max(16px, env(safe-area-inset-left, 0px));
+  padding-right:max(16px, env(safe-area-inset-right, 0px));
+  -webkit-user-select:none; user-select:none; touch-action:none; -webkit-tap-highlight-color:transparent;
+  overscroll-behavior:none;
+}
+button{font-family:inherit}
+.screen{height:100%; max-width:480px; margin:0 auto; display:flex; flex-direction:column; padding-block:10px; box-sizing:border-box}
+
+/* ----- menu ----- */
+#menu{align-items:center; gap:12px; overflow-y:auto; touch-action:pan-y; overscroll-behavior:contain}
+#menu > *{flex:none}
+#menu::before,#menu::after,#online .body::before,#online .body::after{content:''; flex:1 1 0}
+.logo{display:grid; grid-template-columns:repeat(3,24px); gap:4px; margin-bottom:4px}
+.logo i{width:24px; height:24px; border-radius:6px; background:var(--c); box-shadow:inset 0 -4px 0 rgba(0,0,0,.22), inset 0 3px 0 rgba(255,255,255,.38)}
+.logo i.e{background:none; box-shadow:none}
+.title{margin:0 0 14px; font:700 48px/1 var(--font-display); text-align:center; letter-spacing:.01em; text-shadow:0 3px 0 rgba(0,0,0,.2); text-wrap:balance}
+.mbtn{width:min(100%, 320px); border:0; border-radius:18px; padding:14px 18px 16px; display:flex; flex-direction:column; align-items:center; gap:2px; font:700 22px var(--font-display); cursor:pointer; box-sizing:border-box}
+.mbtn small{font:800 13px var(--font-body); opacity:.75}
+.mbtn:active{transform:translateY(2px)}
+.primary{background:var(--gold); color:var(--ink); box-shadow:inset 0 -5px 0 rgba(0,0,0,.18)}
+.secondary{background:rgba(255,255,255,.1); color:var(--fg); box-shadow:inset 0 -5px 0 rgba(0,0,0,.22)}
+.blue{background:var(--sky); color:#0c2238; box-shadow:inset 0 -5px 0 rgba(0,0,0,.18)}
+#menu{position:relative}
+#menu > :not(.floaters){position:relative; z-index:1}
+.floaters{position:absolute; inset:0; overflow:hidden; pointer-events:none; z-index:0}
+.floaters i{position:absolute; left:var(--x); top:var(--y); width:var(--s); height:var(--s); border-radius:22%; background:var(--c); opacity:.13; box-shadow:inset 0 -5px 0 rgba(0,0,0,.25), inset 0 4px 0 rgba(255,255,255,.4); animation:drift var(--t) ease-in-out infinite alternate; will-change:transform}
+@keyframes drift{from{transform:translateY(-14px) rotate(-8deg)} to{transform:translateY(16px) rotate(10deg)}}
+.gbtn{width:min(100%, 340px); display:flex; align-items:center; gap:14px; border:0; border-radius:24px; padding:14px 16px 16px; cursor:pointer; text-align:left; color:var(--ink);
+  background:linear-gradient(180deg, #ffd977 0%, #ffbf4d 100%); box-shadow:0 7px 0 #d6912c, 0 14px 24px rgba(0,0,0,.28), inset 0 2px 0 rgba(255,255,255,.55); transition:transform .1s, box-shadow .1s; margin-bottom:6px}
+.gbtn:active{transform:translateY(5px); box-shadow:0 2px 0 #d6912c, 0 6px 12px rgba(0,0,0,.25), inset 0 2px 0 rgba(255,255,255,.55)}
+.gbtn .gi{width:54px; height:54px; flex:none; border-radius:16px; background:rgba(255,255,255,.4); display:grid; place-items:center}
+.gbtn .gi svg{width:32px; height:32px}
+.gbtn .gt{flex:1; min-width:0; display:flex; flex-direction:column}
+.gbtn b{font:700 28px/1.05 var(--font-display)}
+.gbtn small{font:800 13px var(--font-body); opacity:.72; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.gbtn .play{width:44px; height:44px; flex:none; border-radius:50%; background:var(--ink); color:#ffd977; display:grid; place-items:center}
+.gbtn .play svg{width:20px; height:20px; margin-left:3px}
+.tiles{width:min(100%, 340px); display:grid; grid-template-columns:repeat(3, 1fr); gap:10px}
+.tile{border:0; border-radius:20px; padding:14px 6px 12px; cursor:pointer; color:#fff; display:flex; flex-direction:column; align-items:center; gap:3px; min-width:0;
+  background:linear-gradient(180deg, color-mix(in srgb, var(--c) 100%, #fff 12%) 0%, var(--c) 100%); box-shadow:0 6px 0 var(--d), 0 12px 20px rgba(0,0,0,.25), inset 0 2px 0 rgba(255,255,255,.35); transition:transform .1s, box-shadow .1s}
+.tile:active{transform:translateY(4px); box-shadow:0 2px 0 var(--d), 0 5px 10px rgba(0,0,0,.25), inset 0 2px 0 rgba(255,255,255,.35)}
+.tile svg{width:34px; height:34px; filter:drop-shadow(0 2px 0 rgba(0,0,0,.15))}
+.tile b{font:700 18px/1.1 var(--font-display); text-shadow:0 2px 0 rgba(0,0,0,.15)}
+.tile small{font:800 11.5px var(--font-body); opacity:.88; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.pill{margin-top:8px; border:0; border-radius:999px; padding:10px 20px; display:flex; align-items:center; gap:8px; cursor:pointer; font:700 17px var(--font-display); color:var(--gold); background:rgba(255,255,255,.07); box-shadow:inset 0 0 0 1.5px rgba(255,203,87,.35)}
+.pill svg{width:20px; height:20px}
+.pill:active{transform:scale(.96)}
+.gbtn:focus-visible,.tile:focus-visible,.pill:focus-visible{outline:3px solid #fff; outline-offset:4px}
+.linkbtn{border:0; background:none; color:var(--gold); font:700 17px var(--font-display); display:flex; align-items:center; gap:6px; padding:10px; cursor:pointer}
+.linkbtn svg{width:20px; height:20px}
+.mbtn:focus-visible,.iconbtn:focus-visible,.node:focus-visible,.btn:focus-visible,.linkbtn:focus-visible,.tab:focus-visible{outline:3px solid #fff; outline-offset:3px}
+@media (max-height:700px){ .logo{display:none} .title{font-size:42px} }
+
+/* ----- shared bar ----- */
+.bar{display:grid; grid-template-columns:42px 1fr 42px; align-items:center; gap:8px; padding-bottom:6px}
+.bar h2{margin:0; text-align:center; font:600 24px var(--font-display)}
+.stars-total{display:flex; align-items:center; justify-content:center; gap:4px; color:var(--gold); font:700 16px var(--font-display); font-variant-numeric:tabular-nums}
+.stars-total svg{width:18px; height:18px}
+
+/* ----- map ----- */
+.path{flex:1; min-height:0; overflow-y:auto; touch-action:pan-y; overscroll-behavior:contain; padding-block:16px 40px; display:flex; flex-direction:column; align-items:center}
+.nrow{height:96px; display:flex; flex-direction:column; align-items:center; gap:4px; transform:translateX(var(--dx)); flex:none}
+.node{width:62px; height:62px; border-radius:50%; border:0; font:700 24px var(--font-display); color:var(--ink); cursor:pointer; box-shadow:inset 0 -5px 0 rgba(0,0,0,.2), 0 6px 14px rgba(0,0,0,.3)}
+.node.done{background:var(--mint)}
+.node.current{background:var(--gold); animation:pulse 1.4s ease-in-out infinite}
+.node.locked{background:var(--lock); color:#59609a; cursor:default; box-shadow:inset 0 -5px 0 rgba(0,0,0,.2)}
+.node svg{width:22px; height:22px; display:block; margin:auto}
+.nstars{display:flex; gap:2px; height:16px}
+.nstars svg{width:16px; height:16px; color:rgba(255,255,255,.15)}
+.nstars svg.on{color:var(--gold)}
+.soon{color:var(--muted); font-size:14px; text-align:center; margin:8px 0 0}
+
+/* ----- online lobby ----- */
+#online .body{flex:1; min-height:0; overflow-y:auto; touch-action:pan-y; overscroll-behavior:contain; display:flex; flex-direction:column; align-items:center; gap:14px; text-align:center; padding:4px 0}
+#online .body > *{flex:none}
+#friend .body{flex:1; min-height:0; overflow-y:auto; touch-action:pan-y; overscroll-behavior:contain; display:flex; flex-direction:column; align-items:center; gap:14px; text-align:center; padding:4px 0}
+#friend .body > *{flex:none}
+#friend .body::before,#friend .body::after{content:''; flex:1 1 0}
+.mbtn:disabled{opacity:.45; cursor:default; transform:none}
+.frbox{width:min(100%, 320px); display:flex; flex-direction:column; align-items:center; gap:12px}
+.frlead{margin:0; color:var(--muted); font-weight:700; max-width:32ch}
+.frsep{display:flex; align-items:center; gap:10px; width:100%; color:var(--muted); font-weight:800; font-size:13px}
+.frsep::before,.frsep::after{content:''; flex:1; height:2px; background:rgba(255,255,255,.08); border-radius:2px}
+.frjoin{width:100%; display:grid; grid-template-columns:1fr auto; gap:8px}
+.frjoin input{min-width:0; border:0; border-radius:18px; background:rgba(255,255,255,.08); box-shadow:inset 0 0 0 2px rgba(255,255,255,.1); color:var(--fg); font:700 26px var(--font-display); letter-spacing:.3em; text-align:center; text-transform:uppercase; padding:10px 6px 10px calc(6px + .3em); -webkit-user-select:text; user-select:text; touch-action:manipulation}
+.frjoin input:focus{outline:none; box-shadow:inset 0 0 0 2px var(--gold)}
+.frjoin input::placeholder{color:var(--muted); opacity:.6; letter-spacing:.2em}
+.frjoin .mbtn{width:auto; padding-inline:22px}
+.frcode{width:100%; box-sizing:border-box; background:var(--panel); border-radius:22px; padding:14px; display:flex; flex-direction:column; align-items:center; gap:2px; box-shadow:inset 0 0 0 2px rgba(255,255,255,.05)}
+.frcode small{color:var(--muted); font-weight:800; font-size:12px; letter-spacing:.08em; text-transform:uppercase}
+.frcode b{font:700 44px/1.1 var(--font-display); letter-spacing:.18em; padding-left:.18em; color:var(--gold); -webkit-user-select:text; user-select:text}
+.frslots{width:100%; display:grid; grid-template-columns:1fr 1fr; gap:8px}
+.frslot{border-radius:16px; padding:10px 8px; background:rgba(255,255,255,.05); box-shadow:inset 0 0 0 2px rgba(255,255,255,.06); display:flex; flex-direction:column; align-items:center; gap:2px; min-width:0}
+.frslot b{font:700 17px var(--font-display); max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.frslot small{font-weight:800; font-size:12px; color:var(--muted)}
+.frslot.on{background:rgba(88,210,150,.12); box-shadow:inset 0 0 0 2px rgba(88,210,150,.5)}
+.frslot.wait b{color:var(--muted); animation:blink 1.4s ease-in-out infinite}
+.frlabel{margin:0 0 -6px; color:var(--muted); font-size:12px; letter-spacing:.08em; text-transform:uppercase; font-weight:800}
+.seg.three{grid-template-columns:1fr 1fr 1fr}
+.frtext{margin-top:8px; padding:10px 12px; border-radius:12px; background:rgba(255,255,255,.07); text-align:left; font-weight:700; -webkit-user-select:text; user-select:text}
+.seg{width:min(100%, 320px); display:grid; grid-template-columns:1fr 1fr; gap:8px; flex:none}
+.segb{border:0; border-radius:14px; padding:10px 8px; background:rgba(255,255,255,.07); color:var(--fg); display:flex; flex-direction:column; align-items:center; gap:2px; cursor:pointer; box-shadow:inset 0 0 0 2px rgba(255,255,255,.06); transition:background .2s, box-shadow .2s, opacity .2s}
+.segb b{font:700 17px var(--font-display)}
+.segb small{font:800 12px var(--font-body); color:var(--muted)}
+.segb.on{background:rgba(255,200,61,.14); box-shadow:inset 0 0 0 2px var(--gold)}
+.segb.on b{color:var(--gold)}
+.segb:disabled{cursor:default; opacity:.45}
+.segb.on:disabled{opacity:1}
+.segb:focus-visible{outline:3px solid #fff; outline-offset:3px}
+.radar{position:relative; width:184px; height:184px; display:grid; place-items:center; flex:none}
+.radar .ring{position:absolute; inset:0; border-radius:50%; border:3px solid var(--tc, #cd7f4a); opacity:0; animation:ring 2.4s cubic-bezier(.2,.6,.4,1) infinite; animation-delay:var(--d, 0s)}
+.radar .orbit{position:absolute; inset:14px; animation:spin 3.6s linear infinite; animation-delay:var(--a)}
+.radar .orbit i{position:absolute; left:50%; top:-8px; width:16px; height:16px; margin-left:-8px; border-radius:4px; background:var(--c); box-shadow:inset 0 -3px 0 rgba(0,0,0,.22), inset 0 2px 0 rgba(255,255,255,.35)}
+.radar .shield{width:86px; height:86px; animation:bob 1.6s ease-in-out infinite}
+.srch{display:flex; flex-direction:column; align-items:center; gap:2px}
+.srch b{font:700 34px/1.1 var(--font-display); font-variant-numeric:tabular-nums}
+.srch span{color:var(--muted); font-weight:800; font-size:14px; max-width:34ch}
+.online-now{width:min(100%, 320px); display:flex; flex-direction:column; gap:8px; align-items:center}
+.online-now .label{margin:0; color:var(--muted); font-size:12px; letter-spacing:.08em; text-transform:uppercase; font-weight:800}
+.chips{display:flex; flex-wrap:wrap; justify-content:center; gap:6px}
+.pchip{display:flex; align-items:center; gap:6px; padding:5px 10px; border-radius:12px; background:rgba(255,255,255,.07); font-weight:800; font-size:13px; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.pchip i{width:8px; height:8px; border-radius:50%; background:var(--mint); flex:none}
+.pchip.q i{background:var(--gold); animation:blink 1s ease-in-out infinite}
+.pchip small{color:var(--muted); font-weight:700}
+.vsov{position:fixed; inset:0; z-index:90; display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); grid-template-rows:1fr auto auto 1fr; align-items:center; gap:14px 6px; padding:0 16px; background:radial-gradient(90% 60% at 50% 50%, #2c3787 0%, #0d1130 100%); overflow:hidden}
+.vsov .side{grid-row:2; display:flex; flex-direction:column; align-items:center; gap:4px; min-width:0; text-align:center}
+.vsov .side.l{animation:inl .55s cubic-bezier(.2,1.3,.4,1) both}
+.vsov .side.r{animation:inr .55s cubic-bezier(.2,1.3,.4,1) both}
+.vsov .shield{width:80px; height:80px; color:var(--tc)}
+.vsov .side b{font:700 22px var(--font-display); max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.vsov .side span{color:var(--tc); font-weight:800; font-size:14px}
+.vsx{grid-row:2; font:700 56px var(--font-display); color:var(--gold); text-shadow:0 4px 0 rgba(0,0,0,.3); animation:vspop .5s .35s cubic-bezier(.3,1.8,.5,1) both}
+.vsm{grid-row:3; grid-column:1/-1; text-align:center; margin:0; font:700 18px var(--font-display); color:var(--sky); animation:fade .4s .65s both}
+@keyframes ring{0%{transform:scale(.4); opacity:.9} 100%{transform:scale(1); opacity:0}}
+@keyframes bob{50%{transform:translateY(-6px)}}
+@keyframes blink{50%{opacity:.3}}
+@keyframes inl{from{transform:translateX(-130%); opacity:0}}
+@keyframes inr{from{transform:translateX(130%); opacity:0}}
+@keyframes vspop{from{transform:scale(3); opacity:0}}
+.rankcard{width:min(100%, 320px); box-sizing:border-box; background:var(--panel); border-radius:22px; padding:20px 18px; display:flex; flex-direction:column; align-items:center; gap:4px; box-shadow:inset 0 0 0 2px rgba(255,255,255,.05)}
+.shield{width:72px; height:72px; color:var(--tc, #cd7f4a); filter:drop-shadow(0 6px 10px rgba(0,0,0,.35))}
+.tiername{font:700 24px var(--font-display); color:var(--tc, #cd7f4a)}
+.rating{font:700 44px/1 var(--font-display); font-variant-numeric:tabular-nums}
+.rating small{font:600 15px var(--font-body); color:var(--muted)}
+.wl{color:var(--muted); font-weight:800; font-size:14px}
+.status{min-height:44px; margin:0; color:var(--muted); max-width:34ch; display:flex; align-items:center; justify-content:center; gap:8px}
+.spin{width:16px; height:16px; border-radius:50%; border:3px solid rgba(255,255,255,.15); border-top-color:var(--gold); animation:spin 0.8s linear infinite; flex:none}
+.hint{color:var(--muted); font-size:13px; max-width:36ch; margin:0}
+
+/* ----- leaderboard ----- */
+.tabs{display:grid; grid-template-columns:1fr 1fr; gap:6px; background:rgba(255,255,255,.06); padding:4px; border-radius:14px; margin-bottom:8px}
+.tab{border:0; border-radius:10px; padding:9px; background:none; color:var(--muted); font:700 16px var(--font-display); cursor:pointer}
+.tab.on{background:var(--gold); color:var(--ink)}
+.list{flex:1; min-height:0; overflow-y:auto; touch-action:pan-y; overscroll-behavior:contain; display:flex; flex-direction:column; gap:6px; padding-bottom:20px}
+.row{display:grid; grid-template-columns:30px 34px minmax(0,1fr) auto; align-items:center; gap:10px; padding:8px 12px; border-radius:14px; background:rgba(255,255,255,.05)}
+.row.me{background:rgba(255,200,61,.14); box-shadow:inset 0 0 0 2px rgba(255,200,61,.35)}
+.row .pos{font:700 18px var(--font-display); color:var(--muted); text-align:center; font-variant-numeric:tabular-nums}
+.row:nth-child(1) .pos{color:#ffc83d} .row:nth-child(2) .pos{color:#c0c8de} .row:nth-child(3) .pos{color:#cd7f4a}
+.row img{width:34px; height:34px; border-radius:50%; object-fit:cover}
+.row .who{min-width:0}
+.row .nm{font-weight:800; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.row .sub{font-size:12px; color:var(--muted); display:flex; gap:6px; align-items:center}
+.chip{font:700 11px var(--font-display); padding:1px 7px; border-radius:8px; color:#141836; background:var(--tc)}
+.row .val{font:700 20px var(--font-display); font-variant-numeric:tabular-nums}
+.note{color:var(--muted); text-align:center; font-size:14px; margin:14px 0 0}
+
+/* ----- game ----- */
+.top{display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:8px; padding-bottom:4px}
+.mid{display:flex; flex-direction:column; align-items:center; gap:2px; min-width:0}
+.hmain{display:flex; align-items:center; gap:8px; font-family:var(--font-display); font-weight:700; font-size:42px; line-height:1.05; font-variant-numeric:tabular-nums; text-shadow:0 3px 0 rgba(0,0,0,.25); white-space:nowrap}
+.hmain.bump{animation:bump .3s cubic-bezier(.3,1.6,.5,1)}
+.hmain .hicon{display:grid; place-items:center}
+.hmain .hicon svg{width:34px; height:34px}
+.hmain.done{color:var(--mint)}
+.hmain.low{color:var(--hot)}
+.hsub{display:flex; align-items:center; gap:5px; font:600 15px var(--font-display); color:var(--muted); font-variant-numeric:tabular-nums; white-space:nowrap}
+.hsub svg{width:16px; height:16px; color:var(--gold)}
+.hsub b{color:var(--gold); font-weight:600}
+.btns{display:flex; gap:8px}
+.iconbtn{width:42px; height:42px; border-radius:12px; border:0; background:rgba(255,255,255,.08); color:var(--fg); display:grid; place-items:center; cursor:pointer; padding:0}
+.iconbtn:active{transform:scale(.94)}
+.iconbtn svg{width:22px; height:22px}
+.vsbar{display:grid; grid-template-columns:1fr 1fr; gap:8px; padding-bottom:4px}
+.pcard{display:flex; align-items:center; gap:8px; padding:6px 10px; border-radius:14px; background:rgba(255,255,255,.06); min-width:0}
+.pcard.opp{flex-direction:row-reverse; text-align:right}
+.pcard .who{min-width:0; display:flex; flex-direction:column}
+.pcard .nm{font:600 13px var(--font-display); color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.pcard .sc{font:700 24px/1.1 var(--font-display); font-variant-numeric:tabular-nums}
+.pcard.me .sc{color:var(--gold)}
+.pcard.opp .sc{color:var(--sky)}
+.pcard canvas{width:46px; height:46px; flex:none; border-radius:8px}
+.pcard{transition:box-shadow .2s, background .2s}
+.pcard.turn{background:rgba(255,200,61,.14); box-shadow:inset 0 0 0 2px var(--gold)}
+.pcard.opp.turn{background:rgba(56,195,255,.14); box-shadow:inset 0 0 0 2px var(--sky)}
+.hmain.tl{font-size:30px}
+.choices{display:flex; flex-direction:column; gap:10px; margin:8px 0 2px}
+.choice{border:0; border-radius:16px; padding:14px 14px 13px; text-align:left; display:flex; flex-direction:column; gap:3px; cursor:pointer; background:rgba(255,255,255,.07); color:var(--fg); box-shadow:inset 0 0 0 2px rgba(255,255,255,.08)}
+.choice b{font:700 20px var(--font-display); color:var(--gold)}
+.choice.alt b{color:var(--sky)}
+.choice span{font-size:14px; color:var(--muted); line-height:1.35}
+.choice:active{transform:scale(.98)}
+.pcard .tag{font:700 11px var(--font-display); color:var(--mint)}
+
+.stage{flex:1; min-height:0; position:relative}
+.stage canvas{position:absolute; inset:0; display:block; touch-action:none}
+.combo{position:absolute; left:50%; top:4px; transform:translateX(-50%); display:flex; align-items:center; gap:6px; height:22px; padding:0 10px; border-radius:11px; background:rgba(255,122,69,.16); color:var(--hot); font:700 13px var(--font-display); letter-spacing:.02em; transition:opacity .2s; z-index:2; pointer-events:none; white-space:nowrap}
+.combo.off{opacity:0}
+.combo.bump{animation:bumpc .3s cubic-bezier(.3,1.6,.5,1)}
+.dots{display:flex; gap:3px}
+.dots i{width:6px; height:6px; border-radius:50%; background:currentColor; opacity:.25}
+.dots i.on{opacity:1}
+
+.fly{position:fixed; left:0; top:0; z-index:60; pointer-events:none; filter:drop-shadow(0 4px 6px rgba(0,0,0,.4))}
+.fly svg{width:100%; height:100%; display:block}
+
+/* ----- modal ----- */
+.over{position:fixed; inset:0; z-index:100; background:rgba(8,10,30,.72); display:grid; place-items:center; padding-left:max(16px, env(safe-area-inset-left,0px)); padding-right:max(16px, env(safe-area-inset-right,0px)); animation:fade .25s ease-out}
+.card{background:var(--panel); border-radius:22px; padding:26px 22px 22px; width:min(100%, 330px); box-sizing:border-box; text-align:center; display:flex; flex-direction:column; gap:8px; box-shadow:0 20px 50px rgba(0,0,0,.5), inset 0 0 0 2px rgba(255,255,255,.06); animation:rise .4s cubic-bezier(.3,1.5,.5,1)}
+.card h2{margin:0; font-family:var(--font-display); font-weight:600; font-size:26px; text-wrap:balance}
+.card .label{margin:6px 0 0; color:var(--muted); font-size:13px; letter-spacing:.08em; text-transform:uppercase}
+.card .big{font-family:var(--font-display); font-weight:700; font-size:56px; line-height:1; font-variant-numeric:tabular-nums}
+.card p{margin:0; color:var(--muted)}
+.card .gold{color:var(--gold); font-weight:800}
+.card .up{color:var(--mint); font-weight:800}
+.card .down{color:var(--hot); font-weight:800}
+.versus{display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:8px; margin:6px 0}
+.versus div{display:flex; flex-direction:column; gap:2px; min-width:0}
+.versus span{color:var(--muted); font-size:13px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.versus b{font:700 34px/1 var(--font-display); font-variant-numeric:tabular-nums}
+.versus i{font:600 16px var(--font-display); color:var(--muted); font-style:normal}
+.versus .win b{color:var(--gold)}
+.bigstars{display:flex; justify-content:center; gap:6px; margin:6px 0 4px}
+.bigstars svg{width:58px; height:58px; color:rgba(255,255,255,.12)}
+.bigstars svg:nth-child(2){transform:translateY(-12px)}
+.bigstars svg.on{color:var(--gold); animation:starpop .45s cubic-bezier(.3,1.8,.5,1) both; animation-delay:var(--d)}
+.btn{margin-top:10px; border:0; border-radius:14px; padding:15px 18px; font:700 19px var(--font-display); color:var(--ink); background:var(--gold); box-shadow:inset 0 -4px 0 rgba(0,0,0,.18); cursor:pointer}
+.btn.ghost{margin-top:0; background:transparent; color:var(--muted); box-shadow:none; padding:10px; font-size:16px}
+.btn:active{transform:translateY(2px)}
+
+@keyframes bump{50%{transform:scale(1.15)}}
+@keyframes bumpc{50%{transform:translateX(-50%) scale(1.15)}}
+@keyframes fade{from{opacity:0}}
+@keyframes rise{from{opacity:0; transform:translateY(24px) scale(.92)}}
+@keyframes pulse{50%{transform:scale(1.08)}}
+@keyframes starpop{from{transform:scale(0) rotate(-40deg)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion: reduce){.floaters i{animation:none}.hmain.bump,.combo.bump,.over,.card,.node.current,.bigstars svg.on{animation-duration:.01s}}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-star" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6-4.9-4.6 6.6-.8z"/></symbol>
+    <symbol id="i-crown" viewBox="0 0 24 24"><path fill="currentColor" d="M3 7l4.5 4L12 4l4.5 7L21 7l-2 12H5L3 7z"/></symbol>
+    <symbol id="i-gem" viewBox="0 0 24 24"><path fill="#7ff0ff" d="M6 3h12l4 6-10 12L2 9z"/><path fill="#c9fbff" d="M6 3h12l-3 6H9z"/><path fill="#3fc7e6" d="M2 9h7l3 12z"/><path fill="#26a9cc" d="M15 9h7L12 21z"/><path fill="#5fe3f7" d="M9 9h6l-3 12z"/></symbol>
+    <symbol id="i-lines" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="4" rx="2" fill="#f9a24f"/><rect x="2" y="10" width="20" height="4" rx="2" fill="#f5d360"/><rect x="2" y="16" width="20" height="4" rx="2" fill="#58d296"/></symbol>
+    <symbol id="i-ice" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="4.5" fill="#8fdcff"/><rect x="3" y="3" width="18" height="9" rx="4.5" fill="#c7f1ff"/><rect x="3.8" y="3.8" width="16.4" height="16.4" rx="3.8" fill="none" stroke="#f2fcff" stroke-width="1.4"/><path d="M7.5 15.5l7-7M11 18l6-6" stroke="#fff" stroke-width="1.7" stroke-linecap="round" opacity=".85"/></symbol>
+    <symbol id="i-map" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" d="M3 6.5l5.5-2.5 7 2.5L21 4v13.5L15.5 20l-7-2.5L3 20z"/><path stroke="currentColor" stroke-width="2.2" d="M8.5 4v13.5M15.5 6.5V20"/></symbol>
+    <symbol id="i-inf" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" d="M12 12c-2-2.6-3.6-4-5.5-4a4 4 0 0 0 0 8c1.9 0 3.5-1.4 5.5-4s3.6-4 5.5-4a4 4 0 0 1 0 8c-1.9 0-3.5-1.4-5.5-4z"/></symbol>
+    <symbol id="i-globe" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.1"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.6 3.8 5.6 3.8 9s-1.2 6.4-3.8 9c-2.6-2.6-3.8-5.6-3.8-9S9.4 5.6 12 3z"/></g></symbol>
+    <symbol id="i-duo" viewBox="0 0 24 24"><g fill="currentColor"><circle cx="8.5" cy="8" r="3.4"/><circle cx="16.5" cy="9" r="2.8" opacity=".75"/><path d="M2.5 19.5c0-3.4 2.7-6 6-6s6 2.6 6 6z"/><path d="M14 19.5c0-1.6-.5-3-1.4-4.2a5 5 0 0 1 9 4.2z" opacity=".75"/></g></symbol>
+    <symbol id="i-chev" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><path fill="currentColor" d="M7 10V8a5 5 0 0 1 10 0v2h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm2 0h6V8a3 3 0 0 0-6 0z"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" d="M15 5l-7 7 7 7"/></symbol>
+    <symbol id="i-trophy" viewBox="0 0 24 24"><path fill="currentColor" d="M7 3h10v2h3v3a4 4 0 0 1-4 4h-.3A5 5 0 0 1 13 14.9V18h3v3H8v-3h3v-3.1A5 5 0 0 1 8.3 12H8a4 4 0 0 1-4-4V5h3zm0 4H6v1a2 2 0 0 0 1 1.7zm10 0v2.7A2 2 0 0 0 18 8V7z"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2l8 3v6c0 5-3.4 9.4-8 11-4.6-1.6-8-6-8-11V5z"/><path fill="rgba(255,255,255,.35)" d="M12 4.2l6 2.3V11c0 3.9-2.5 7.4-6 8.8z"/><path fill="#fff" d="M12 7.5l1.3 2.7 3 .4-2.2 2.1.5 3-2.6-1.4-2.6 1.4.5-3-2.2-2.1 3-.4z"/></symbol>
+  </defs>
+</svg>
+
+<section class="screen" id="menu">
+  <div class="floaters" aria-hidden="true">
+    <i style="--x:6%; --y:8%; --s:34px; --c:#f7697c; --t:7s"></i><i style="--x:80%; --y:5%; --s:26px; --c:#f5d360; --t:9s"></i>
+    <i style="--x:88%; --y:34%; --s:40px; --c:#50bdf0; --t:8s"></i><i style="--x:-3%; --y:42%; --s:28px; --c:#58d296; --t:10s"></i>
+    <i style="--x:10%; --y:80%; --s:38px; --c:#bc82f0; --t:9s"></i><i style="--x:78%; --y:84%; --s:30px; --c:#f9a24f; --t:7.5s"></i>
+    <i style="--x:46%; --y:93%; --s:22px; --c:#7c87f2; --t:11s"></i>
+  </div>
+  <div class="logo" aria-hidden="true">
+    <i style="--c:#f7697c"></i><i style="--c:#f9a24f"></i><i class="e"></i>
+    <i class="e"></i><i style="--c:#f5d360"></i><i style="--c:#58d296"></i>
+    <i style="--c:#50bdf0"></i><i style="--c:#7c87f2"></i><i style="--c:#bc82f0"></i>
+  </div>
+  <h1 class="title">Blok Patlat</h1>
+  <button class="gbtn" id="goAdventure"><span class="gi"><svg aria-hidden="true"><use href="#i-map"/></svg></span><span class="gt"><b>Macera</b><small id="advSub">Bölüm 1</small></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5z"/></svg></span></button>
+  <div class="tiles">
+    <button class="tile" id="goEndless" style="--c:#a978e6; --d:#7a4fb8"><svg aria-hidden="true"><use href="#i-inf"/></svg><b>Sonsuz</b><small id="endSub">En iyi: 0</small></button>
+    <button class="tile" id="goOnline" style="--c:#45aee6; --d:#2a7db3"><svg aria-hidden="true"><use href="#i-globe"/></svg><b>Online</b><small id="onSub">Bronz · 1000</small></button>
+    <button class="tile" id="goLocal" style="--c:#4cc489; --d:#2f9161"><svg aria-hidden="true"><use href="#i-duo"/></svg><b>2 kişi</b><small>Aynı telefon</small></button>
+  </div>
+  <button class="pill" id="goRanks"><svg aria-hidden="true"><use href="#i-trophy"/></svg>Sıralama</button>
+</section>
+
+<section class="screen" id="map" hidden>
+  <div class="bar">
+    <button class="iconbtn" id="mapBack" aria-label="Menüye dön"><svg><use href="#i-back"/></svg></button>
+    <div>
+      <h2>Macera</h2>
+      <div class="stars-total"><svg><use href="#i-star"/></svg><span id="starTotal">0/45</span></div>
+    </div>
+    <span></span>
+  </div>
+  <div class="path" id="path"></div>
+</section>
+
+<section class="screen" id="online" hidden>
+  <div class="bar">
+    <button class="iconbtn" id="onlineBack" aria-label="Menüye dön"><svg><use href="#i-back"/></svg></button>
+    <h2>Online düello</h2>
+    <span></span>
+  </div>
+  <div class="body">
+    <div class="rankcard" id="rankcard">
+      <svg class="shield" aria-hidden="true"><use href="#i-shield"/></svg>
+      <div class="tiername" id="tierName">Bronz</div>
+      <div class="rating"><span id="ratingVal">1000</span> <small>rank puanı</small></div>
+      <div class="wl" id="wl">0 galibiyet · 0 mağlubiyet</div>
+    </div>
+    <div class="radar" id="radar" hidden aria-hidden="true">
+      <span class="ring"></span><span class="ring" style="--d:.8s"></span><span class="ring" style="--d:1.6s"></span>
+      <span class="orbit" style="--a:0s"><i style="--c:#f7697c"></i></span><span class="orbit" style="--a:-1.2s"><i style="--c:#58d296"></i></span><span class="orbit" style="--a:-2.4s"><i style="--c:#50bdf0"></i></span>
+      <svg class="shield"><use href="#i-shield"/></svg>
+    </div>
+    <div class="srch" id="srch" hidden aria-live="polite"><b id="srchTime">0:00</b><span id="srchSub">Rakip aranıyor</span></div>
+    <div class="seg" role="radiogroup" aria-label="Maç türü">
+      <button class="segb" id="qm1" role="radio"><b>Skor yarışı</b><small>1 dk · aynı bloklar</small></button>
+      <button class="segb" id="qm2" role="radio"><b>Ortak tahta</b><small>Sırayla · tek tahta</small></button>
+    </div>
+    <p class="status" id="onStatus" aria-live="polite"></p>
+    <button class="mbtn primary" id="findBtn">Rakip bul</button>
+    <button class="mbtn secondary" id="cancelBtn" hidden>Aramayı durdur</button>
+    <button class="mbtn secondary" id="friendBtn">Arkadaşla oyna<small>Davet kodu ile özel oda</small></button>
+    <div class="online-now" id="onlineNow"></div>
+    <button class="linkbtn" id="onRanks"><svg aria-hidden="true"><use href="#i-trophy"/></svg>Sıralamayı gör</button>
+  </div>
+</section>
+
+<section class="screen" id="friend" hidden>
+  <div class="bar">
+    <button class="iconbtn" id="friendBack" aria-label="Geri dön"><svg><use href="#i-back"/></svg></button>
+    <h2>Arkadaşla oyna</h2>
+    <span></span>
+  </div>
+  <div class="body">
+    <div class="frbox" id="frStart">
+      <p class="frlead">Bir oda kur ve davet kodunu arkadaşına gönder. Ya da arkadaşının gönderdiği kodu gir.</p>
+      <button class="mbtn primary" id="frCreate">Oda kur</button>
+      <div class="frsep">ya da</div>
+      <div class="frjoin"><input id="frCode" maxlength="4" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" placeholder="KOD" aria-label="Oda kodu"><button class="mbtn secondary" id="frJoin">Katıl</button></div>
+    </div>
+    <div class="frbox" id="frLobby" hidden>
+      <div class="frcode"><small>Oda kodu</small><b id="frCodeVal">----</b></div>
+      <button class="mbtn secondary" id="frInvite">Daveti gönder</button>
+      <div class="frslots"><div class="frslot" id="frSlot1"></div><div class="frslot" id="frSlot2"></div></div>
+      <p class="frlabel">Mod</p>
+      <div class="seg" role="radiogroup" aria-label="Mod">
+        <button class="segb" id="frm1" role="radio"><b>Skor yarışı</b><small>Aynı bloklar</small></button>
+        <button class="segb" id="frm2" role="radio"><b>Ortak tahta</b><small>Sırayla · tek tahta</small></button>
+      </div>
+      <p class="frlabel" id="frTimeLabel">Süre</p>
+      <div class="seg three" role="radiogroup" aria-labelledby="frTimeLabel">
+        <button class="segb" id="frt0" role="radio"><b></b></button><button class="segb" id="frt1" role="radio"><b></b></button><button class="segb" id="frt2" role="radio"><b></b></button>
+      </div>
+    </div>
+    <p class="status" id="frStatus" aria-live="polite"></p>
+    <button class="mbtn primary" id="frGo" hidden>Başlat</button>
+  </div>
+</section>
+
+<section class="screen" id="ranks" hidden>
+  <div class="bar">
+    <button class="iconbtn" id="ranksBack" aria-label="Geri"><svg><use href="#i-back"/></svg></button>
+    <h2>Sıralama</h2>
+    <span></span>
+  </div>
+  <div class="tabs" role="tablist">
+    <button class="tab on" id="tabRating" role="tab" aria-selected="true">Rank</button>
+    <button class="tab" id="tabBest" role="tab" aria-selected="false">Sonsuz rekor</button>
+  </div>
+  <div class="list" id="rankList"></div>
+  <p class="note" id="rankNote"></p>
+</section>
+
+<section class="screen" id="game" hidden>
+  <div class="top">
+    <button class="iconbtn" id="gameBack" aria-label="Geri"><svg><use href="#i-back"/></svg></button>
+    <div class="mid">
+      <div class="hmain" id="hmain" aria-live="polite"><span class="hicon" id="hicon" hidden></span><span id="hnum">0</span></div>
+      <div class="hsub" id="hsub"></div>
+    </div>
+    <div class="btns">
+      <button class="iconbtn" id="sound" aria-label="Sesi kapat" aria-pressed="false">
+        <svg id="sndOn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/><path d="M19 6a8.5 8.5 0 0 1 0 12"/></svg>
+        <svg id="sndOff" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" hidden><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M17 9l5 6M22 9l-5 6"/></svg>
+      </button>
+      <button class="iconbtn" id="restart" aria-label="Yeniden başla">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="vsbar" id="vsbar" hidden>
+    <div class="pcard me"><div class="who"><span class="nm" id="meName">Sen</span><span class="sc" id="meScore">0</span></div></div>
+    <div class="pcard opp"><canvas id="oppMini" width="92" height="92" aria-hidden="true"></canvas><div class="who"><span class="nm" id="oppName">Rakip</span><span class="sc" id="oppScore">0</span></div></div>
+  </div>
+  <div class="stage" id="stage">
+    <div class="combo off" id="combo"><span id="comboTxt">Kombo x1</span><span class="dots"><i></i><i></i><i></i></span></div>
+    <canvas id="cv" aria-label="Oyun alanı: blokları sürükleyip 8x8 alana bırak"></canvas>
+  </div>
+</section>
+
+<div class="vsov" id="vsov" hidden>
+  <div class="side l" id="vsL"><svg class="shield" aria-hidden="true"><use href="#i-shield"/></svg><b>Sen</b><span id="vsMeR"></span></div>
+  <div class="vsx" aria-hidden="true">VS</div>
+  <div class="side r" id="vsR"><svg class="shield" aria-hidden="true"><use href="#i-shield"/></svg><b id="vsOpName">Rakip</b><span id="vsOpR"></span></div>
+  <p class="vsm" id="vsMode"></p>
+</div>
+
+<div class="over" id="modal" hidden>
+  <div class="card" role="dialog" aria-labelledby="mTitle">
+    <h2 id="mTitle"></h2>
+    <div id="mBody"></div>
+    <button class="btn" id="mPrimary"></button>
+    <button class="btn ghost" id="mSecondary"></button>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+const N = 8;
+const PAL = ['#f7697c','#f9a24f','#f5d360','#58d296','#50bdf0','#7c87f2','#bc82f0','#565c84','#bdeeff'];
+const GREY = 7, ICE = 8;
+const C_BOARD = '#141831', C_CELL = '#222847';
+const FONT = '"Fredoka","Trebuchet MS",system-ui,sans-serif';
+const VS_TIME = 60000, LOCAL_TIME = 60000, LOCK_BONUS = 200, TURN_TIME = 20000, SKIP_CODE = 192;
+const encMove = (i, r, c) => (i * 64 + r * 8 + c).toString(36).padStart(2, '0');
+const svgUse = (id, cls) => `<svg${cls ? ` class="${cls}"` : ''} aria-hidden="true"><use href="#${id}"/></svg>`;
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+/* ---------- levels ----------
+   '.' empty, '0'-'6' coloured block, 'g' block holding a gem.
+   goal: gems = collect every gem, lines = clear N lines, score = reach N points.
+   par = moves for 3 stars (1.5x par for 2 stars). */
+const LEVELS = [
+  { goal: 'lines', target: 3, par: 4, b: ['........','........','........','........','........','333.3333','1111.111','22.22222'] },
+  { goal: 'gems', par: 6, b: ['........','........','........','........','........','3g3.33g3','........','44g4.444'] },
+  { goal: 'score', target: 500, par: 10, b: ['........','.0....0.','........','........','........','........','.5....5.','........'] },
+  { goal: 'gems', par: 8, b: ['........','..g..g..','........','........','.1....1.','..1gg1..','........','........'] },
+  { goal: 'lines', target: 6, par: 10, b: ['0......0','.0....0.','..0..0..','...00...','...00...','..0..0..','.0....0.','0......0'] },
+  { goal: 'gems', par: 10, b: ['........','.222222.','.2g..g2.','.2....2.','.2.g..2.','.2g..g2.','.222222.','........'] },
+  { goal: 'score', target: 1200, par: 14, b: ['........','.66.66..','6666666.','6666666.','.66666..','..666...','...6....','........'] },
+  { goal: 'gems', par: 12, b: ['g......g','........','........','...gg...','...44...','........','........','g......g'] },
+  { goal: 'lines', target: 10, par: 15, b: ['0.......','00......','000.....','0000....','00000...','000000..','0000000.','........'] },
+  { goal: 'gems', par: 16, b: ['........','.1g11g1.','.1....1.','.g.55.g.','.g.55.g.','.1....1.','.1g11g1.','........'] },
+  { goal: 'score', target: 2000, par: 18, b: ['2222222.','2......2','2......2','2......2','2......2','2......2','2......2','.2222222'] },
+  { goal: 'gems', par: 14, b: ['g.......','.g......','..g.....','...g....','....g...','.....g..','........','........'] },
+  { goal: 'lines', target: 12, par: 16, b: ['3333333.','444444.4','55555.55','6666.666','000.0000','11.11111','2.222222','.3333333'] },
+  { goal: 'gems', par: 20, b: ['gg....gg','g......g','........','...11...','...11...','........','g......g','gg....gg'] },
+  { goal: 'score', target: 3000, par: 22, b: ['........','........','...5....','..555...','.55555..','5555555.','........','........'] },
+  /* ice world: 'i' ice, 'I' thick ice (two hits). Ice breaks when a cleared line passes through it or next to it. */
+  { goal: 'ice', par: 4, b: ['........','........','........','........','........','33i33.33','........','4444.4i4'] },
+  { goal: 'ice', par: 5, b: ['........','........','........','........','..i..i..','.111111.','........','........'] },
+  { goal: 'ice', par: 8, b: ['........','........','........','........','...II...','22.22.22','........','........'] },
+  { goal: 'lines', target: 6, par: 10, b: ['i......i','........','........','...ii...','...ii...','........','........','i......i'] },
+  { goal: 'ice', par: 12, b: ['........','........','.i.i.i.i','........','........','i.i.i.i.','........','........'] },
+  { goal: 'gems', par: 12, b: ['........','........','..iiii..','..iggi..','..iggi..','..iiii..','........','........'] },
+  { goal: 'score', target: 1500, par: 16, b: ['........','..I..I..','........','........','........','........','..I..I..','........'] },
+  { goal: 'ice', par: 14, b: ['i.......','........','..i..i..','........','........','..i..i..','........','.......i'] },
+  { goal: 'ice', par: 16, b: ['II....II','I......I','........','........','........','........','I......I','II....II'] },
+  { goal: 'lines', target: 10, par: 18, b: ['...ii...','........','........','i......i','i......i','........','........','...ii...'] },
+  { goal: 'ice', par: 16, b: ['........','.i.i.i..','........','.i.i.i..','........','.i.i.i..','........','........'] },
+  { goal: 'gems', par: 16, b: ['g......g','.I....I.','........','...gg...','...gg...','........','.I....I.','g......g'] },
+  { goal: 'ice', par: 18, b: ['........','........','i.......','0i......','00i.....','000i....','0000i...','00000i..'] },
+  { goal: 'score', target: 3500, par: 24, b: ['........','.iiiiii.','.i....i.','.i....i.','.i....i.','.i....i.','.iiiiii.','........'] },
+  { goal: 'ice', par: 24, b: ['I......I','.I....I.','..I..I..','...II...','...II...','..I..I..','.I....I.','I......I'] }
+];
+LEVELS.forEach(L => {
+  const flat = L.b.join('');
+  if (L.goal === 'gems') L.target = flat.split('g').length - 1;
+  if (L.goal === 'ice') L.target = (flat.match(/[iI]/g) || []).length;
+  L.ice = /[iI]/.test(flat); L.thick = flat.includes('I');
+});
+
+/* shape, weight (bigger weight = more common) */
+const SHAPE_DEFS = [
+  [["#"],2],
+  [["##"],3],[["#","#"],3],
+  [["###"],3],[["#","#","#"],3],
+  [["####"],2],[["#","#","#","#"],2],
+  [["#####"],1],[["#","#","#","#","#"],1],
+  [["##","##"],3],
+  [["###","###","###"],1],
+  [["###","###"],1],[["##","##","##"],1],
+  [["##","#."],1.5],[["##",".#"],1.5],[["#.","##"],1.5],[[".#","##"],1.5],
+  [["#..","#..","###"],0.8],[["..#","..#","###"],0.8],[["###","#..","#.."],0.8],[["###","..#","..#"],0.8],
+  [["#.","#.","##"],1],[[".#",".#","##"],1],[["##","#.","#."],1],[["##",".#",".#"],1],
+  [["###","#.."],1],[["###","..#"],1],[["#..","###"],1],[["..#","###"],1],
+  [["###",".#."],1.2],[[".#.","###"],1.2],[["#.","##","#."],1.2],[[".#","##",".#"],1.2],
+  [["##.",".##"],1.2],[[".##","##."],1.2],[["#.","##",".#"],1.2],[[".#","##","#."],1.2]
+];
+const SH = SHAPE_DEFS.map(([rows, wt]) => {
+  const cells = [];
+  rows.forEach((r, y) => [...r].forEach((ch, x) => { if (ch === '#') cells.push([y, x]); }));
+  return { cells, h: rows.length, w: rows[0].length, wt };
+});
+const TOTAL_W = SH.reduce((a, s) => a + s.wt, 0);
+
+/* ---------- helpers ---------- */
+const $ = id => document.getElementById(id);
+const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
+const lerp = (a, b, k) => a + (b - a) * k;
+const easeOutCubic = k => 1 - Math.pow(1 - k, 3);
+const easeInCubic = k => k * k * k;
+const easeOutBack = k => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(k - 1, 3) + c1 * Math.pow(k - 1, 2); };
+const now = () => performance.now();
+const calm = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+function rr(x, X, Y, w, h, r){ x.beginPath(); x.moveTo(X + r, Y); x.arcTo(X + w, Y, X + w, Y + h, r); x.arcTo(X + w, Y + h, X, Y + h, r); x.arcTo(X, Y + h, X, Y, r); x.arcTo(X, Y, X + w, Y, r); x.closePath(); }
+function shade(hex, amt){
+  const n = parseInt(hex.slice(1), 16);
+  let r = n >> 16, g = (n >> 8) & 255, b = n & 255;
+  const t = amt < 0 ? 0 : 255, p = Math.abs(amt);
+  r = Math.round((t - r) * p + r); g = Math.round((t - g) * p + g); b = Math.round((t - b) * p + b);
+  return `rgb(${r},${g},${b})`;
+}
+function store(k, v){ try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
+function buzz(p){ try { navigator.vibrate && navigator.vibrate(p); } catch (e) {} }
+function bumpEl(el){ el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
+function hashStr(s){ let h = 2166136261 >>> 0; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h; }
+function mulberry32(a){ return function(){ a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const fmtTime = ms => { const s = Math.ceil(Math.max(0, ms) / 1000); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+const num = (v, d) => (typeof v === 'number' && Number.isFinite(v)) ? v : d;
+
+/* ---------- progress & stats ---------- */
+let best = parseInt(store('blokpatlat_best') || '0', 10) || 0;
+let prog = { unlocked: 1, stars: [] };
+try { const p = JSON.parse(store('blokpatlat_macera') || 'null'); if (p && p.unlocked) prog = p; } catch (e) {}
+prog.stars.forEach((st, i) => { if (st) prog.unlocked = Math.max(prog.unlocked, Math.min(LEVELS.length, i + 2)); });   // new levels open after the old last one
+function saveProg(){ store('blokpatlat_macera', JSON.stringify(prog)); }
+const starSum = () => prog.stars.reduce((a, s) => a + (s || 0), 0);
+
+const TIERS = [[0, 'Bronz', '#cd7f4a'], [1100, 'Gümüş', '#c0c8de'], [1250, 'Altın', '#ffc83d'], [1400, 'Platin', '#5fe3d0'], [1600, 'Elmas', '#7ff0ff'], [1800, 'Usta', '#bc82f0']];
+function tierOf(r){ let t = TIERS[0]; for (const x of TIERS) if (r >= x[0]) t = x; return { name: t[1], color: t[2] }; }
+let myStats = { rating: 1000, w: 0, l: 0, d: 0, best: 0 };
+try { const s = JSON.parse(store('blokpatlat_stats') || 'null'); if (s && typeof s.rating === 'number') myStats = Object.assign(myStats, s); } catch (e) {}
+
+/* ---------- sound (synthesized, no files) ---------- */
+let muted = store('blokpatlat_mute') === '1';
+const sfx = (() => {
+  let ac = null, master = null;
+  function ctx(){
+    if (muted) return null;
+    if (!ac) {
+      const A = window.AudioContext || window.webkitAudioContext;
+      if (!A) return null;
+      try { ac = new A(); master = ac.createGain(); master.gain.value = 0.55; master.connect(ac.destination); } catch (e) { return null; }
+    }
+    if (ac.state === 'suspended') ac.resume();
+    return ac;
+  }
+  function tone(f, d, o = {}){
+    const a = ctx(); if (!a) return;
+    const t = a.currentTime + (o.at || 0);
+    const osc = a.createOscillator(), g = a.createGain();
+    osc.type = o.type || 'sine';
+    osc.frequency.setValueAtTime(f, t);
+    if (o.to) osc.frequency.exponentialRampToValueAtTime(o.to, t + d);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(o.v || 0.2, t + (o.attack || 0.006));
+    g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+    osc.connect(g); g.connect(master);
+    osc.start(t); osc.stop(t + d + 0.03);
+  }
+  const SCALE = [0, 2, 4, 7, 9, 12, 14, 16, 19, 21, 24, 26, 28];
+  const note = (base, i) => base * Math.pow(2, SCALE[Math.min(i, SCALE.length - 1)] / 12);
+  return {
+    unlock(){ ctx(); },
+    tap(){ tone(660, 0.06, { type: 'triangle', v: 0.08, to: 880 }); },
+    tick(hi){ tone(hi ? 988 : 659, 0.12, { type: 'triangle', v: 0.12 }); },
+    pick(){ tone(520, 0.07, { type: 'triangle', v: 0.1, to: 760 }); },
+    place(){ tone(210, 0.13, { v: 0.32, to: 90 }); tone(1200, 0.025, { type: 'triangle', v: 0.04 }); },
+    back(){ tone(420, 0.14, { v: 0.1, to: 250 }); },
+    clear(n, combo, delay){
+      const base = 392 * Math.pow(2, Math.min(combo - 1, 8) * 2 / 12);
+      const count = 2 + n;
+      for (let i = 0; i < count; i++) tone(note(base, i), 0.24, { type: 'triangle', v: 0.15, at: delay + i * 0.05 });
+      tone(note(base, count + 1) * 2, 0.4, { v: 0.05, at: delay + count * 0.05 });
+    },
+    gem(i){ tone(note(1046, i % 8), 0.18, { v: 0.12 }); tone(note(1046, i % 8) * 1.5, 0.12, { type: 'triangle', v: 0.04 }); },
+    found(){ [0, 7, 12].forEach((s, i) => tone(659 * Math.pow(2, s / 12), 0.2, { type: 'triangle', v: 0.12, at: i * 0.07 })); },
+    bonus(delay){ [0, 4, 7, 12, 16].forEach((s, i) => tone(523 * Math.pow(2, s / 12), 0.45, { type: 'triangle', v: 0.13, at: delay + i * 0.08 })); },
+    win(){ [0, 4, 7, 12, 7, 12, 16, 19].forEach((s, i) => tone(523 * Math.pow(2, s / 12), 0.35, { type: 'triangle', v: 0.13, at: i * 0.09 })); },
+    star(i){ tone(784 * Math.pow(2, i * 4 / 12), 0.3, { type: 'triangle', v: 0.14 }); },
+    crack(){ tone(2400, 0.05, { type: 'square', v: 0.035, to: 1500 }); tone(900, 0.08, { type: 'triangle', v: 0.06, to: 500 }); },
+    shatter(){ [2637, 3136, 2349, 3520].forEach((f, i) => tone(f, 0.09, { type: 'triangle', v: 0.05, at: i * 0.025 })); },
+    over(delay){ [392, 330, 262, 196].forEach((f, i) => tone(f, 0.32, { type: 'triangle', v: 0.13, at: delay + i * 0.15 })); }
+  };
+})();
+
+/* ---------- canvas & layout ---------- */
+const stage = $('stage'), cv = $('cv'), ctx = cv.getContext('2d');
+let W = 0, H = 0, dpr = 1, B = 0, bx = 0, by = 0, pad = 0, gap = 0, cs = 0, pitch = 0, gx = 0, gy = 0, tcy = 0, ts = 0;
+let sprites = [], gemSprite = null, boardImg = null, iceSprites = [], shadowSprite = null;
+let lowQ = store('blokpatlat_lowq') === '1', slowFrames = 0, drawUntil = 0, drewLast = false;
+const kick = (ms = 250) => { drawUntil = Math.max(drawUntil, now() + ms); };   // canvas only redraws while something moves
+
+function layout(){
+  const r = stage.getBoundingClientRect();
+  if (r.width < 10 || r.height < 10) return;
+  W = r.width; H = r.height;
+  dpr = Math.min(window.devicePixelRatio || 1, lowQ ? 1.25 : 2);
+  cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+  cv.style.width = W + 'px'; cv.style.height = H + 'px';
+  const trayK = 0.42, topRoom = 32;
+  B = Math.max(160, Math.min(W, (H - topRoom) / (1 + trayK)));
+  bx = (W - B) / 2;
+  by = topRoom + Math.max(0, (H - topRoom - B * (1 + trayK)) * 0.15);
+  pad = B * 0.022; gap = Math.max(2, B * 0.009);
+  cs = (B - pad * 2 - gap * (N - 1)) / N; pitch = cs + gap;
+  gx = bx + pad; gy = by + pad;
+  const trayTop = by + B;
+  tcy = trayTop + Math.min((H - trayTop) / 2, B * 0.25);
+  ts = Math.min(cs * 0.58, (B / 3 - 14) / (5 * 1.04));
+  buildSprites(); buildBoard();
+  kick(400);
+}
+function buildSprites(){
+  const s = Math.max(4, Math.ceil(cs * dpr));
+  sprites = PAL.map(col => {
+    const c = document.createElement('canvas'); c.width = c.height = s;
+    const x = c.getContext('2d'), r = s * 0.17;
+    rr(x, 0, 0, s, s, r); x.fillStyle = shade(col, -0.32); x.fill();
+    rr(x, 0, 0, s, s * 0.88, r); x.fillStyle = col; x.fill();
+    const g = x.createLinearGradient(0, 0, 0, s * 0.55);
+    g.addColorStop(0, 'rgba(255,255,255,.55)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+    rr(x, s * 0.09, s * 0.07, s * 0.82, s * 0.42, r * 0.7); x.fillStyle = g; x.fill();
+    x.fillStyle = 'rgba(255,255,255,.7)';
+    rr(x, s * 0.16, s * 0.13, s * 0.16, s * 0.1, s * 0.05); x.fill();
+    return c;
+  });
+  {
+    const S = Math.ceil(s * 1.6), c = document.createElement('canvas'); c.width = c.height = S;
+    const x = c.getContext('2d');
+    x.shadowColor = 'rgba(0,0,0,.55)'; x.shadowBlur = s * 0.22; x.shadowOffsetX = S * 4;
+    rr(x, (S - s) / 2 - S * 4, (S - s) / 2, s, s, s * 0.2); x.fillStyle = '#000'; x.fill();
+    shadowSprite = c;
+  }
+  iceSprites = [1, 2].map(hp => {
+    const c = document.createElement('canvas'); c.width = c.height = s;
+    const x = c.getContext('2d'), r = s * 0.17;
+    const g = x.createLinearGradient(0, 0, s, s);
+    g.addColorStop(0, hp > 1 ? '#d9f6ff' : '#c4efff'); g.addColorStop(1, hp > 1 ? '#7cc9ee' : '#8fd6f5');
+    rr(x, 0, 0, s, s, r); x.fillStyle = g; x.globalAlpha = hp > 1 ? 1 : 0.82; x.fill(); x.globalAlpha = 1;
+    x.lineWidth = Math.max(1, s * 0.06); x.strokeStyle = 'rgba(255,255,255,.85)';
+    rr(x, x.lineWidth / 2, x.lineWidth / 2, s - x.lineWidth, s - x.lineWidth, r * 0.85); x.stroke();
+    if (hp > 1) { x.lineWidth = Math.max(1, s * 0.04); x.strokeStyle = 'rgba(255,255,255,.55)'; rr(x, s * 0.17, s * 0.17, s * 0.66, s * 0.66, r * 0.5); x.stroke(); }
+    x.strokeStyle = 'rgba(255,255,255,.75)'; x.lineCap = 'round'; x.lineWidth = Math.max(1, s * 0.07);
+    x.beginPath(); x.moveTo(s * 0.24, s * 0.62); x.lineTo(s * 0.62, s * 0.24); x.moveTo(s * 0.42, s * 0.78); x.lineTo(s * 0.78, s * 0.42); x.stroke();
+    return c;
+  });
+  const c = document.createElement('canvas'); c.width = c.height = s;
+  const x = c.getContext('2d'); x.scale(s / 24, s / 24);
+  x.shadowColor = 'rgba(0,0,0,.35)'; x.shadowOffsetY = 1.2; x.shadowBlur = 1.5;
+  const poly = (pts, fill) => { x.beginPath(); pts.forEach(([a, b], i) => i ? x.lineTo(a, b) : x.moveTo(a, b)); x.closePath(); x.fillStyle = fill; x.fill(); };
+  poly([[6,3],[18,3],[22,9],[12,21],[2,9]], '#7ff0ff');
+  x.shadowColor = 'transparent';
+  poly([[6,3],[18,3],[15,9],[9,9]], '#c9fbff');
+  poly([[2,9],[9,9],[12,21]], '#3fc7e6');
+  poly([[15,9],[22,9],[12,21]], '#26a9cc');
+  poly([[9,9],[15,9],[12,21]], '#5fe3f7');
+  gemSprite = c;
+}
+function buildBoard(){
+  const s = Math.ceil(B * dpr);
+  const c = document.createElement('canvas'); c.width = c.height = s;
+  const x = c.getContext('2d'); x.scale(dpr, dpr);
+  rr(x, 0, 0, B, B, B * 0.035); x.fillStyle = C_BOARD; x.fill();
+  x.strokeStyle = 'rgba(255,255,255,.06)'; x.lineWidth = 2; rr(x, 1, 1, B - 2, B - 2, B * 0.035); x.stroke();
+  for (let i = 0; i < N * N; i++) {
+    const X = pad + (i % N) * pitch, Y = pad + Math.floor(i / N) * pitch;
+    rr(x, X, Y, cs, cs, cs * 0.17); x.fillStyle = C_CELL; x.fill();
+    x.save(); rr(x, X, Y, cs, cs, cs * 0.17); x.clip();
+    x.fillStyle = 'rgba(0,0,0,.28)'; x.fillRect(X, Y, cs, Math.max(2, cs * 0.06));
+    x.restore();
+  }
+  boardImg = c;
+}
+const cellCX = i => gx + (i % N) * pitch + cs / 2;
+const cellCY = i => gy + Math.floor(i / N) * pitch + cs / 2;
+function drawBlock(ci, cx, cy, size, alpha, rot, white, gem, hp){
+  if (size <= 0.5 || alpha <= 0) return;
+  const spr = ci === ICE ? iceSprites[hp > 1 ? 1 : 0] : sprites[ci];
+  if (!rot && !(white > 0) && !gem) {   // fast path: most cells on most frames
+    ctx.globalAlpha = alpha;
+    ctx.drawImage(spr, cx - size / 2, cy - size / 2, size, size);
+    ctx.globalAlpha = 1;
+    return;
+  }
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(cx, cy);
+  if (rot) ctx.rotate(rot);
+  ctx.drawImage(spr, -size / 2, -size / 2, size, size);
+  if (gem) { const g = size * 0.74; ctx.drawImage(gemSprite, -g / 2, -g / 2 - size * 0.03, g, g); }
+  if (white > 0) { ctx.globalAlpha = alpha * white; ctx.fillStyle = '#fff'; rr(ctx, -size / 2, -size / 2, size, size, size * 0.17); ctx.fill(); }
+  ctx.restore();
+}
+function drawPiece(p, cx, cy, sc, alpha, grey){
+  const sh = SH[p.s];
+  const w = (sh.w * pitch - gap) * sc, h = (sh.h * pitch - gap) * sc;
+  const x0 = cx - w / 2, y0 = cy - h / 2, size = cs * sc;
+  for (const [y, x] of sh.cells) drawBlock(grey ? GREY : p.color, x0 + x * pitch * sc + size / 2, y0 + y * pitch * sc + size / 2, size, alpha, 0, 0, false);
+}
+
+/* ---------- game state ---------- */
+let mode = 'endless', lvl = 0, screen = 'menu';
+let grid = Array(N * N).fill(null), gems = Array(N * N).fill(false);
+let iceHp = Array(N * N).fill(0), iceFx = Array(N * N).fill(0);
+let tray = [null, null, null], trayFit = [false, false, false];
+let score = 0, shown = 0, combo = 0, sinceClear = 0, over = false, won = false, overT0 = 0;
+let goalCount = 0, goalShown = 0, moves = 0;
+let landA = Array(N * N).fill(null), clearA = Array(N * N).fill(null);
+let slotA = [null, null, null];
+let parts = [], floats = [], flashes = [], shake = 0;
+let drag = null, preview = null;
+let hint = null, idleSince = 0;      // idle hint: after HINT_DELAY without a move, glow a good spot
+const HINT_DELAY = 5000;
+let rng = null;          // seeded piece stream for duels (both players get the same pieces)
+let vs = null;           // duel state: { kind: 'online' | 'local', phase: 'count' | 'play' | 'end', ... }
+let timers = [];
+const vsTime = () => vs && vs.dur ? vs.dur : vs && vs.kind === 'local' ? LOCAL_TIME : VS_TIME;
+const later = (fn, ms) => { timers.push(setTimeout(fn, ms)); };
+function clearTimers(){ timers.forEach(clearTimeout); timers = []; document.querySelectorAll('.fly').forEach(e => e.remove()); }
+
+function fits(p, r, c){
+  const sh = SH[p.s];
+  if (r < 0 || c < 0 || r + sh.h > N || c + sh.w > N) return false;
+  for (const [y, x] of sh.cells) if (grid[(r + y) * N + c + x] !== null) return false;
+  return true;
+}
+function fitsAnywhere(p){
+  for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) if (fits(p, r, c)) return true;
+  return false;
+}
+function fullLines(g){
+  const rows = [], cols = [];
+  for (let i = 0; i < N; i++) {
+    let rf = true, cf = true;
+    for (let j = 0; j < N; j++) { if (g[i * N + j] === null) rf = false; if (g[j * N + i] === null) cf = false; }
+    if (rf) rows.push(i); if (cf) cols.push(i);
+  }
+  return { rows, cols };
+}
+function pickShape(rand){
+  let r = rand() * TOTAL_W;
+  for (let k = 0; k < SH.length; k++) { r -= SH[k].wt; if (r <= 0) return k; }
+  return SH.length - 1;
+}
+function shuffled(rand){ const a = [0, 1, 2, 3, 4, 5, 6]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function newTray(){
+  if (rng) { const cols = shuffled(rng); return [0, 1, 2].map(i => ({ s: pickShape(rng), color: cols[i] })); }
+  let fallback = null;
+  for (let a = 0; a < 40; a++) {
+    const cols = shuffled(Math.random);
+    const set = [0, 1, 2].map(i => ({ s: pickShape(Math.random), color: cols[i] }));
+    const f = set.map(fitsAnywhere);
+    if (f.every(Boolean)) return set;
+    if (!fallback && f.some(Boolean)) fallback = set;
+  }
+  return fallback || [0, 1, 2].map(i => ({ s: 0, color: i }));
+}
+function refreshFit(){ trayFit = tray.map(p => !!p && fitsAnywhere(p)); kick(); }
+function popTray(delay){ const t = now() + delay; slotA = [0, 1, 2].map(i => ({ type: 'pop', t0: t + i * 70 })); }
+const boardStr = () => grid.map(v => v === null ? '.' : String(v)).join('');
+
+/* ---------- HUD ---------- */
+const hmain = $('hmain'), hicon = $('hicon'), hnum = $('hnum'), hsub = $('hsub');
+const comboEl = $('combo'), comboTxt = $('comboTxt'), dots = comboEl.querySelectorAll('.dots i');
+let hudKey = '';
+function renderHud(force){
+  const si = Math.round(shown);
+  let num, sub;
+  if (mode === 'endless') {
+    num = String(si);
+    sub = `${svgUse('i-crown')}<b>${Math.max(best, score)}</b>`;
+  } else if (mode === 'level') {
+    const L = LEVELS[lvl];
+    const have = L.goal === 'score' ? Math.min(si, L.target) : Math.min(goalShown, L.target);
+    num = `${have}/${L.target}`;
+    sub = `Bölüm ${lvl + 1} · ${moves} hamle`;
+  } else if (mode === 'shared') {
+    const L = vs.net ? vs.me : 1, R = 3 - L, end = vs.phase === 'end';
+    const left = vs.net && !end ? vs.turnEnd - now() : 0;
+    if (end) { num = 'Bitti'; sub = 'Oyun bitti'; }
+    else if (vs.net) { num = vs.p === vs.me ? 'Senin sıran' : 'Rakibin sırası'; sub = `${Math.ceil(Math.max(0, left) / 1000)} sn`; }
+    else { num = `Oyuncu ${vs.p}`; sub = 'Hamle sırası'; }
+    hmain.classList.add('tl');
+    hmain.classList.toggle('low', !!vs.net && !end && vs.p === vs.me && left < 6000);
+    $('meScore').textContent = vs.p === L ? si : vs.scores[L - 1];
+    $('oppScore').textContent = vs.p === R ? si : vs.scores[R - 1];
+  } else {
+    const left = vs ? (vs.phase === 'play' ? vs.endAt - now() : vs.phase === 'count' ? vsTime() : 0) : 0;
+    num = fmtTime(left);
+    hmain.classList.toggle('low', vs && vs.phase === 'play' && left < 15000);
+    if (!vs) sub = '';
+    else if (vs.phase === 'end') sub = vs.kind === 'online' && !vs.oppDone ? 'Rakibin bitirmesi bekleniyor' : 'Süre bitti';
+    else sub = vs.kind === 'online' ? (vs.friend ? 'Arkadaş maçı' : vs.practice ? 'Antrenman maçı' : 'Dereceli düello') : `Oyuncu ${vs.p} oynuyor`;
+    $('meScore').textContent = si;
+  }
+  const key = num + '|' + sub;
+  if (key === hudKey && !force) return;
+  hudKey = key;
+  hnum.textContent = num;
+  hsub.innerHTML = sub;
+}
+function setHudMode(){
+  if (mode === 'level') {
+    const L = LEVELS[lvl];
+    hicon.hidden = false;
+    hicon.innerHTML = svgUse(L.goal === 'gems' ? 'i-gem' : L.goal === 'lines' ? 'i-lines' : L.goal === 'ice' ? 'i-ice' : 'i-star');
+    if (L.goal === 'score') hicon.querySelector('svg').style.color = 'var(--gold)';
+  } else hicon.hidden = true;
+  hmain.classList.remove('done', 'low', 'tl');
+  const isVs = mode === 'duel' || mode === 'local' || mode === 'shared';
+  $('vsbar').hidden = !isVs;
+  $('restart').hidden = isVs;
+  $('gameBack').setAttribute('aria-label', isVs ? 'Maçtan çık' : mode === 'endless' ? 'Menüye dön' : 'Haritaya dön');
+  renderHud(true);
+  if (isVs) renderVs();
+}
+function updateCombo(bump){
+  if (combo >= 1) {
+    comboEl.classList.remove('off');
+    comboTxt.textContent = 'Kombo x' + combo;
+    dots.forEach((d, i) => d.classList.toggle('on', i < 3 - sinceClear));
+    if (bump) bumpEl(comboEl);
+  } else comboEl.classList.add('off');
+}
+function setMute(m){
+  muted = m; store('blokpatlat_mute', m ? '1' : '0');
+  $('sndOn').hidden = m; $('sndOff').hidden = !m;
+  $('sound').setAttribute('aria-pressed', String(m));
+  $('sound').setAttribute('aria-label', m ? 'Sesi aç' : 'Sesi kapat');
+}
+
+/* ---------- tray positions ---------- */
+function slotHome(i){ return { x: bx + B * (i + 0.5) / 3, y: tcy, s: ts / cs }; }
+function trayPos(i, t){
+  const h = slotHome(i), a = slotA[i];
+  if (!a) return h;
+  if (a.type === 'pop') {
+    const k = (t - a.t0) / 360;
+    if (k < 0) return { x: h.x, y: h.y, s: 0 };
+    if (k >= 1) { slotA[i] = null; return h; }
+    return { x: h.x, y: h.y + (1 - easeOutCubic(k)) * cs * 0.6, s: h.s * easeOutBack(k) };
+  }
+  const k = (t - a.t0) / 210;
+  if (k >= 1) { slotA[i] = null; return h; }
+  const e = easeOutCubic(k);
+  return { x: lerp(a.x, h.x, e), y: lerp(a.y, h.y, e), s: lerp(a.s, h.s, e) };
+}
+function dragPos(t){
+  const k = easeOutCubic(clamp01((t - drag.t0) / 120));
+  return { x: lerp(drag.fx, drag.x, k), y: lerp(drag.fy, drag.y - drag.lift, k), s: lerp(drag.fs, 1, k) };
+}
+
+/* ---------- input ---------- */
+function pt(e){ const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+cv.addEventListener('pointerdown', e => {
+  sfx.unlock();
+  if (over || won || drag) return;
+  if (vs && vs.phase !== 'play') return;
+  if (vs && vs.net && vs.kind === 'shared' && vs.p !== vs.me) return;
+  const { x, y } = pt(e);
+  if (y < by + B - cs * 0.3) return;
+  const i = Math.max(0, Math.min(2, Math.floor((x - bx) / (B / 3))));
+  const p = tray[i];
+  if (!p) return;
+  e.preventDefault();
+  try { cv.setPointerCapture(e.pointerId); } catch (err) {}
+  const t = now(), cur = trayPos(i, t);
+  if (cur.s <= 0.01) cur.s = ts / cs;
+  slotA[i] = null;
+  drag = { i, p, id: e.pointerId, x, y, t0: t, fx: cur.x, fy: cur.y, fs: cur.s,
+           lift: e.pointerType === 'mouse' ? 0 : Math.max(cs * 1.9, 64) };
+  sfx.pick(); buzz(6);
+  hint = null; idleSince = t;
+  updatePreview();
+});
+cv.addEventListener('pointermove', e => {
+  if (!drag || e.pointerId !== drag.id) return;
+  kick();
+  const q = pt(e); drag.x = q.x; drag.y = q.y;
+  updatePreview();
+});
+cv.addEventListener('pointerup', e => { if (drag && e.pointerId === drag.id) drop(); });
+cv.addEventListener('pointercancel', e => { if (drag && e.pointerId === drag.id) { preview = null; drop(); } });
+
+function updatePreview(){
+  const p = drag.p, sh = SH[p.s];
+  const x0 = drag.x - (sh.w * pitch - gap) / 2, y0 = drag.y - drag.lift - (sh.h * pitch - gap) / 2;
+  const fc = (x0 - gx) / pitch, fr = (y0 - gy) / pitch;
+  const rc = Math.round(fc), rr0 = Math.round(fr);
+  let bestT = null, bd = 0.8;
+  for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+    const r = rr0 + dr, c = rc + dc, d = (r - fr) ** 2 + (c - fc) ** 2;
+    if (d < bd && fits(p, r, c)) { bd = d; bestT = { r, c }; }
+  }
+  if (!bestT) { preview = null; return; }
+  if (preview && preview.r === bestT.r && preview.c === bestT.c) return;
+  const cells = sh.cells.map(([y, x]) => (bestT.r + y) * N + bestT.c + x);
+  const g2 = grid.slice(); cells.forEach(i => { g2[i] = p.color; });
+  const { rows, cols } = fullLines(g2);
+  const lines = new Set();
+  rows.forEach(y => { for (let x = 0; x < N; x++) lines.add(y * N + x); });
+  cols.forEach(x => { for (let y = 0; y < N; y++) lines.add(y * N + x); });
+  if (!preview || preview.lines.size !== lines.size) { if (lines.size) buzz(4); }
+  preview = { r: bestT.r, c: bestT.c, cells, lines, color: p.color };
+}
+function drop(){
+  const d = drag, t = now();
+  const pos = dragPos(t);
+  drag = null;
+  if (preview && !over && !(vs && vs.phase !== 'play')) {
+    if (vs && vs.net && vs.kind === 'shared') vs.myMoves += encMove(d.i, preview.r, preview.c);
+    place(d, preview, pos, t);
+  }
+  else { slotA[d.i] = { type: 'ret', t0: t, x: pos.x, y: pos.y, s: pos.s }; sfx.back(); }
+  preview = null; idleSince = t; kick(400);
+}
+
+/* ---------- ice ---------- */
+function iceHitsOf(set, g){   // ice in a cleared line or touching one takes a hit
+  const hits = new Set();
+  set.forEach(idx => {
+    if (g[idx] === ICE) { hits.add(idx); return; }
+    const y = Math.floor(idx / N), x = idx % N;
+    [[y - 1, x], [y + 1, x], [y, x - 1], [y, x + 1]].forEach(([a, b]) => { if (a >= 0 && b >= 0 && a < N && b < N && g[a * N + b] === ICE) hits.add(a * N + b); });
+  });
+  return hits;
+}
+
+/* ---------- idle hint ---------- */
+function fitsG(g, p, r, c){
+  const sh = SH[p.s];
+  if (r < 0 || c < 0 || r + sh.h > N || c + sh.w > N) return false;
+  for (const [y, x] of sh.cells) if (g[(r + y) * N + c + x] !== null) return false;
+  return true;
+}
+function rateMove(i, p, r, c){
+  const g = grid.slice(), sh = SH[p.s];
+  let v0 = 0;
+  sh.cells.forEach(([y, x]) => { g[(r + y) * N + c + x] = p.color; });
+  const { rows, cols } = fullLines(g);
+  const gone = new Set();
+  rows.forEach(y => { for (let x = 0; x < N; x++) gone.add(y * N + x); });
+  cols.forEach(x => { for (let y = 0; y < N; y++) gone.add(y * N + x); });
+  let gemHit = 0, iceV = 0;
+  iceHitsOf(gone, g).forEach(k => { iceV++; if (iceHp[k] > 1) gone.delete(k); else gone.add(k); });
+  gone.forEach(k => { if (gems[k]) gemHit++; g[k] = null; });
+  const L = mode === 'level' ? LEVELS[lvl] : null;
+  v0 = iceV * (L && L.goal === 'ice' ? 220 : 40);
+  const filled = (a, b) => a < 0 || b < 0 || a >= N || b >= N || g[a * N + b] !== null;
+  let v = (rows.length + cols.length) * 120 + gemHit * 400 + v0;
+  sh.cells.forEach(([y, x]) => {
+    const a = r + y, b = c + x;
+    v += [[a - 1, b], [a + 1, b], [a, b - 1], [a, b + 1]].filter(([m, n]) => filled(m, n)).length * 3;
+    if (mode === 'level') for (let k = 0; k < N; k++) { if (gems[a * N + k]) v += 4; if (gems[k * N + b]) v += 4; }
+  });
+  for (let k = 0; k < N * N; k++) {
+    if (g[k] !== null) continue;
+    const a = Math.floor(k / N), b = k % N;
+    if (filled(a - 1, b) && filled(a + 1, b) && filled(a, b - 1) && filled(a, b + 1)) v -= 25;
+  }
+  tray.forEach((q, j) => {   // keep the other pieces playable
+    if (j === i || !q) return;
+    let ok = false;
+    for (let y = 0; y < N && !ok; y++) for (let x = 0; x < N && !ok; x++) if (fitsG(g, q, y, x)) ok = true;
+    if (!ok) v -= 600;
+  });
+  return v + g.filter(x => x === null).length;
+}
+function findHint(){
+  let bestH = null;
+  tray.forEach((p, i) => {
+    if (!p) return;
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) if (fits(p, r, c)) {
+      const v = rateMove(i, p, r, c);
+      if (!bestH || v > bestH.v) bestH = { v, i, r, c, color: p.color, cells: SH[p.s].cells.map(([y, x]) => (r + y) * N + c + x) };
+    }
+  });
+  return bestH || { none: true };
+}
+
+/* ---------- placing & clearing ---------- */
+const PRAISE = ['Güzel!', 'Harika!', 'Muhteşem!', 'İnanılmaz!', 'Efsane!'];
+function place(d, pv, pos, t){
+  const p = d.p, sh = SH[p.s];
+  hint = null; idleSince = t;
+  const w = (sh.w * pitch - gap) * pos.s, h = (sh.h * pitch - gap) * pos.s;
+  const x0 = pos.x - w / 2, y0 = pos.y - h / 2, size = cs * pos.s;
+  sh.cells.forEach(([y, x]) => {
+    const idx = (pv.r + y) * N + pv.c + x;
+    grid[idx] = p.color; clearA[idx] = null;
+    landA[idx] = { t0: t, x: x0 + x * pitch * pos.s + size / 2, y: y0 + y * pitch * pos.s + size / 2, s: pos.s };
+  });
+  tray[d.i] = null;
+  moves += 1;
+  let gained = sh.cells.length;
+  buzz(10);
+
+  const { rows, cols } = fullLines(grid);
+  const n = rows.length + cols.length;
+  const ccx = pv.c + sh.w / 2, ccy = pv.r + sh.h / 2;
+  let gemsHit = 0, iceBroken = 0;
+  if (n > 0) {
+    combo += 1; sinceClear = 0;
+    const pts = 40 * n * (n + 1) / 2 * 2 * combo;   // 1 line 80, 2 lines 240, 3 lines 480, times combo
+    gained += pts;
+    const start = t + 110;
+    const set = new Set();
+    rows.forEach(y => { for (let x = 0; x < N; x++) set.add(y * N + x); flashes.push({ t0: start, row: y, color: PAL[p.color] }); });
+    cols.forEach(x => { for (let y = 0; y < N; y++) set.add(y * N + x); flashes.push({ t0: start, col: x, color: PAL[p.color] }); });
+    const waveAt = idx => start + 40 + Math.hypot((idx % N) + 0.5 - ccx, Math.floor(idx / N) + 0.5 - ccy) * 26;
+    iceHitsOf(set, grid).forEach(idx => {
+      iceHp[idx]--;
+      if (iceHp[idx] > 0) {              // thick ice cracks and stays
+        set.delete(idx);
+        const at = waveAt(idx); iceFx[idx] = at;
+        later(() => { spawn(idx, ICE, 4); sfx.crack(); }, at - now());
+      } else { iceBroken++; set.add(idx); }
+    });
+    gained += iceBroken * 30;
+    set.forEach(idx => {
+      const isIce = grid[idx] === ICE;
+      clearA[idx] = { t0: waveAt(idx), color: grid[idx], fx: isIce ? ICE : p.color, spawned: false, gem: gems[idx] };
+      iceHp[idx] = 0;
+      if (gems[idx]) gemsHit++;
+      grid[idx] = null; gems[idx] = false;
+    });
+    const fx = Math.min(Math.max(gx + ccx * pitch, bx + 60), bx + B - 60), fy = gy + ccy * pitch;
+    floats.push({ text: '+' + pts, x: fx, y: fy, t0: start, dur: 1000, size: Math.min(26 + n * 5, 46), color: '#ffffff' });
+    if (n >= 2) floats.push({ text: PRAISE[Math.min(n - 2, PRAISE.length - 1)], x: bx + B / 2, y: by + B * 0.42, t0: start + 60, dur: 1100, size: Math.min(B * 0.11, 52), color: shade(PAL[p.color], 0.45), big: true });
+    if (combo >= 2) floats.push({ text: 'Kombo x' + combo, x: bx + B / 2, y: by + B * (n >= 2 ? 0.56 : 0.45), t0: start + 120, dur: 1000, size: Math.min(B * 0.075, 34), color: '#ff7a45', big: true });
+    shake = calm ? 0 : Math.min(8, 2 + n * 2 + combo * 0.5);
+    sfx.place(); sfx.clear(n, combo, 0.11);
+    later(() => buzz(n > 1 ? [18, 30, 26] : 22), 120);
+    if (grid.every(v => v === null)) {
+      gained += 300;
+      floats.push({ text: 'Tertemiz!  +300', x: bx + B / 2, y: by + B * 0.24, t0: start + 300, dur: 1300, size: Math.min(B * 0.09, 44), color: '#ffc83d', big: true });
+      sfx.bonus(0.45);
+    }
+  } else {
+    sinceClear += 1;
+    if (sinceClear >= 3) combo = 0;
+    sfx.place();
+  }
+  score += gained;
+  if (n > 0 && mode === 'endless') bumpEl(hmain);
+  updateCombo(n > 0);
+
+  if (mode === 'level') {
+    const L = LEVELS[lvl];
+    if (L.goal === 'lines') { goalCount += n; goalShown = goalCount; if (n) bumpEl(hmain); }
+    else if (L.goal === 'gems') goalCount += gemsHit;
+    else if (L.goal === 'ice') { goalCount += iceBroken; goalShown = goalCount; if (iceBroken) later(() => bumpEl(hmain), 250); }
+    else { goalCount = score; if (n) bumpEl(hmain); }
+    if (goalCount >= L.target) {
+      won = true;
+      later(showWin, L.goal === 'gems' ? 1500 : L.goal === 'ice' ? 1100 : 900);
+    }
+  }
+  if (vs && vs.kind === 'online' && matchRoom) matchRoom.presence({ st: 'play', score, b: boardStr() }).catch(() => {});
+  renderHud(true);
+  if (vs && vs.kind === 'shared') { endTurn(); return; }
+  if (tray.every(x => !x)) { tray = newTray(); popTray(140); }
+  refreshFit();
+  if (!won) checkOver(t);
+}
+function flyGem(idx){
+  const r = cv.getBoundingClientRect(), tg = hicon.getBoundingClientRect();
+  const x = r.left + cellCX(idx), y = r.top + cellCY(idx);
+  const tx = tg.left + tg.width / 2, ty = tg.top + tg.height / 2;
+  const s = cs * 0.8;
+  const el = document.createElement('div');
+  el.className = 'fly';
+  el.style.width = el.style.height = s + 'px';
+  el.innerHTML = svgUse('i-gem');
+  document.body.appendChild(el);
+  const arrive = () => {
+    el.remove();
+    goalShown = Math.min(goalShown + 1, goalCount);
+    renderHud(true); bumpEl(hmain); sfx.gem(goalShown); buzz(8);
+  };
+  if (!el.animate) { arrive(); return; }
+  const mx = x + (tx - x) * 0.3 + (Math.random() - 0.5) * 120, my = ty + (y - ty) * 0.45 - Math.random() * 30;
+  const a = el.animate([
+    { transform: `translate(${x - s / 2}px, ${y - s / 2}px) scale(1)` },
+    { transform: `translate(${mx - s / 2}px, ${my - s / 2}px) scale(1.35)`, offset: 0.35 },
+    { transform: `translate(${tx - s / 2}px, ${ty - s / 2}px) scale(.6)` }
+  ], { duration: 700 + Math.random() * 200, easing: 'cubic-bezier(.45,0,.55,1)', fill: 'forwards' });
+  a.onfinish = arrive;
+}
+function confetti(){
+  for (let k = 0; k < 90; k++) {
+    const a = -Math.PI / 2 + (Math.random() - 0.5) * 1.6, sp = 260 + Math.random() * 420;
+    parts.push({ x: bx + B * (0.2 + Math.random() * 0.6), y: by + B * 0.75, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+                 s: cs * (0.15 + Math.random() * 0.2), r: Math.random() * 6, vr: (Math.random() - 0.5) * 14, life: 0, max: 1.2 + Math.random() * 0.8, c: PAL[k % 7] });
+  }
+}
+function checkOver(t){
+  if (trayFit.some(Boolean)) return;
+  if (vs) { finishRound('stuck'); return; }
+  over = true;
+  overT0 = t + 500;
+  sfx.over(0.5);
+  if (mode === 'endless') {
+    const isBest = score > best;
+    if (isBest) { best = score; store('blokpatlat_best', String(best)); }
+    if (score > myStats.best) { myStats.best = score; saveStats(); }
+    later(() => showModal({
+      title: 'Yer kalmadı!',
+      body: `<p class="label">Skor</p><div class="big">${score}</div><p class="${isBest && score > 0 ? 'gold' : ''}">${isBest && score > 0 ? 'Yeni rekor!' : 'En iyi: ' + best}</p>`,
+      primary: ['Tekrar oyna', startEndless], secondary: ['Menü', () => show('menu')]
+    }), 500 + N * 55 + 500);
+  } else {
+    const L = LEVELS[lvl];
+    const have = L.goal === 'score' ? score : goalCount;
+    later(() => showModal({
+      title: 'Yer kalmadı!',
+      body: `<p>Bölüm ${lvl + 1} hedefi</p><div class="big">${Math.min(have, L.target)}/${L.target}</div><p>Az kaldı, bir daha dene.</p>`,
+      primary: ['Tekrar dene', () => startLevel(lvl)], secondary: ['Harita', () => show('map')]
+    }), 500 + N * 55 + 500);
+  }
+}
+function showWin(){
+  const L = LEVELS[lvl];
+  const stars = moves <= L.par ? 3 : moves <= Math.ceil(L.par * 1.5) ? 2 : 1;
+  prog.stars[lvl] = Math.max(prog.stars[lvl] || 0, stars);
+  prog.unlocked = Math.max(prog.unlocked, Math.min(LEVELS.length, lvl + 2));
+  saveProg();
+  hmain.classList.add('done');
+  confetti(); sfx.win(); buzz([30, 50, 30, 50, 60]);
+  later(() => {
+    const st = [0, 1, 2].map(i => `<svg class="${i < stars ? 'on' : ''}" style="--d:${0.15 + i * 0.25}s" aria-hidden="true"><use href="#i-star"/></svg>`).join('');
+    for (let i = 0; i < stars; i++) later(() => sfx.star(i), 150 + i * 250);
+    const hasNext = lvl + 1 < LEVELS.length;
+    showModal({
+      title: `Bölüm ${lvl + 1} tamamlandı!`,
+      body: `<div class="bigstars" aria-label="${stars} yıldız">${st}</div><p><b class="gold">${moves}</b> hamlede bitirdin${stars < 3 ? ` · 3 yıldız için en fazla ${L.par} hamle` : ''}</p>`,
+      primary: hasNext ? ['Sonraki bölüm', () => startLevel(lvl + 1)] : ['Haritaya dön', () => show('map')],
+      secondary: hasNext ? ['Harita', () => show('map')] : ['Menü', () => show('menu')]
+    });
+  }, 700);
+}
+function spawn(idx, color, count){
+  const x = cellCX(idx), y = cellCY(idx);
+  for (let k = 0, m = Math.ceil((count || 6) * (lowQ ? 0.5 : 1)); k < m; k++) {
+    const a = Math.random() * Math.PI * 2, sp = 70 + Math.random() * 220;
+    parts.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 140, s: cs * (0.16 + Math.random() * 0.18),
+                 r: Math.random() * 6, vr: (Math.random() - 0.5) * 12, life: 0, max: 0.5 + Math.random() * 0.4, c: PAL[color] });
+  }
+}
+function saveBest(){ if (mode === 'endless' && score > best) { best = score; store('blokpatlat_best', String(best)); } }
+
+/* ---------- modal ---------- */
+let mActs = [null, null];
+function showModal(o){
+  $('mTitle').textContent = o.title;
+  $('mBody').innerHTML = o.body;
+  $('mPrimary').hidden = !o.primary;
+  if (o.primary) { $('mPrimary').textContent = o.primary[0]; mActs[0] = o.primary[1]; }
+  $('mSecondary').hidden = !o.secondary;
+  if (o.secondary) { $('mSecondary').textContent = o.secondary[0]; mActs[1] = o.secondary[1]; }
+  if (o.onBody) o.onBody($('mBody'));
+  $('modal').hidden = false;
+  (o.primary ? $('mPrimary') : $('mBody').querySelector('button') || $('mSecondary')).focus();
+}
+$('mPrimary').addEventListener('click', () => { sfx.unlock(); sfx.tap(); $('modal').hidden = true; mActs[0] && mActs[0](); });
+$('mSecondary').addEventListener('click', () => { sfx.tap(); $('modal').hidden = true; mActs[1] && mActs[1](); });
+
+/* ---------- online: identity, stats, leaderboard data ---------- */
+const net = { user: null, db: null, room: null, id: null };
+let lobbyPeers = [];
+async function initNet(){
+  const cl = window.claude;
+  if (!cl || typeof cl.use !== 'function') return;
+  const [u, d] = await Promise.all([cl.use('user').catch(() => null), cl.use('db').catch(() => null)]);
+  net.user = u; net.db = d;
+  if (u) net.id = await u.id();
+  if (d && net.id) {
+    d.doc('players/' + net.id).onSnapshot(s => {
+      if (!s.exists) return;
+      const v = s.data();
+      myStats = { rating: num(v.rating, 1000), w: num(v.w, 0), l: num(v.l, 0), d: num(v.d, 0), best: Math.max(num(v.best, 0), myStats.best) };
+      store('blokpatlat_stats', JSON.stringify(myStats));
+      if (screen === 'menu') renderMenu();
+      if (screen === 'online') renderOnline();
+    }, () => {});
+  }
+  netChecked = true;
+  if (screen === 'menu') renderMenu();
+  if (screen === 'ranks') loadRanks();
+}
+let saving = Promise.resolve();
+function saveStats(){
+  store('blokpatlat_stats', JSON.stringify(myStats));
+  if (!net.db || !net.id) return;
+  const body = { rating: myStats.rating, w: myStats.w, l: myStats.l, d: myStats.d, best: myStats.best, games: myStats.w + myStats.l + myStats.d, updated: Date.now() };
+  saving = saving.then(() => net.db.doc('players/' + net.id).set(body)).catch(() => {});
+}
+async function ensureRoom(){
+  if (net.room) return net.room;
+  const cl = window.claude;
+  if (!cl || typeof cl.use !== 'function') return null;
+  const r = await cl.use('room').catch(() => null);
+  if (!r || net.room) return net.room || r;
+  net.room = r;
+  r.onPeers(ch => { lobbyPeers = ch.peers; if (screen === 'online') renderOnlineStatus(); tryPair(ch.peers); }, () => { net.room = null; if (screen === 'online') renderOnline(); });
+  return r;
+}
+
+/* ---------- online: matchmaking (lobby presence) ---------- */
+let searching = false, searchSince = 0, searchTick = 0, pairing = false;
+let matchRoom = null, matchUnsub = null, matchWait = 0, vsIntroT = 0;
+let qmode = store('blokpatlat_qmode') === '2' ? 2 : 1;
+const QNAME = { 1: 'Skor yarışı', 2: 'Ortak tahta' };
+const nameCache = {};
+function setQmode(m){
+  if (searching || pairing) return;
+  qmode = m; store('blokpatlat_qmode', String(m));
+  renderOnlineStatus();
+}
+function renderOnline(){
+  const t = tierOf(myStats.rating);
+  $('rankcard').style.setProperty('--tc', t.color);
+  $('tierName').textContent = t.name;
+  $('ratingVal').textContent = myStats.rating;
+  $('wl').textContent = `${myStats.w} galibiyet · ${myStats.l} mağlubiyet${myStats.d ? ` · ${myStats.d} beraberlik` : ''}`;
+  $('radar').style.setProperty('--tc', t.color);
+  renderOnlineStatus();
+}
+function renderOnlineNow(){
+  const box = $('onlineNow');
+  if (!net.room) { box.innerHTML = ''; return; }
+  const ppl = lobbyPeers.filter(p => p.kind === 'viewer' && !p.isMe && p.presence && (p.presence.on === 1 || p.presence.on === 2));
+  if (!ppl.length) { box.innerHTML = '<p class="hint">Şu an online ekranında senden başka kimse yok. Oyunu paylaştığın bir arkadaşın girince burada görünür.</p>'; return; }
+  const ids = [...new Set(ppl.map(p => p.by || (typeof p.presence.uid === 'string' ? p.presence.uid : null)).filter(Boolean))];
+  const missing = ids.filter(id => !(id in nameCache));
+  if (missing.length && net.user) {
+    missing.forEach(id => { nameCache[id] = ''; });
+    net.user.profiles(missing).then(ps => { missing.forEach(id => { nameCache[id] = (ps[id] && ps[id].name) || ''; }); if (screen === 'online') renderOnlineNow(); }).catch(() => {});
+  }
+  const chips = ppl.slice(0, 8).map(p => {
+    const id = p.by || p.presence.uid, q = p.presence.q;
+    return `<span class="pchip${q ? ' q' : ''}"><i></i>${esc(nameCache[id] || 'Oyuncu')}${q ? ` <small>· ${esc(QNAME[q] || QNAME[1])} arıyor</small>` : p.presence.on === 2 ? ' <small>· maçta</small>' : ''}</span>`;
+  }).join('');
+  box.innerHTML = `<p class="label">Şu an online · ${ppl.length}</p><div class="chips">${chips}</div>${ppl.length > 8 ? `<p class="hint">ve ${ppl.length - 8} kişi daha</p>` : ''}`;
+}
+function renderOnlineStatus(){
+  const st = $('onStatus');
+  const ok = !!net.room, busy = searching || pairing;
+  $('findBtn').hidden = !ok || busy;
+  $('cancelBtn').hidden = !searching;
+  $('friendBtn').hidden = busy;
+  $('rankcard').hidden = busy;
+  $('radar').hidden = !busy; $('srch').hidden = !busy;
+  [1, 2].forEach(m => { const b = $('qm' + m); b.classList.toggle('on', qmode === m); b.setAttribute('aria-checked', String(qmode === m)); b.disabled = busy; });
+  $('findBtn').textContent = `Rakip bul · ${QNAME[qmode]}`;
+  renderOnlineNow();
+  if (!ok) { st.hidden = false; st.textContent = netChecked ? 'Online mod bu görünümde açılamadı. Oyunu sana paylaşılan claude.ai hesabınla açtığından emin ol.' : 'Bağlanıyor…'; return; }
+  if (pairing) { $('srchTime').textContent = 'Bulundu!'; $('srchSub').textContent = 'Rakibe bağlanılıyor…'; st.hidden = true; return; }
+  if (searching) {
+    $('srchTime').textContent = fmtTime(Date.now() - searchSince + 1);
+    const q = lobbyPeers.filter(p => !p.sameTab && p.kind === 'viewer' && p.presence && p.presence.q);
+    const same = q.filter(p => p.presence.q === qmode).length, other = q.length - same;
+    $('srchSub').textContent = same ? `${same} kişi daha arıyor, eşleşiyorsunuz…` : `${QNAME[qmode]} için rakip aranıyor`;
+    st.hidden = !!same;
+    st.textContent = other ? `${other} kişi ${QNAME[3 - qmode]} modunda arıyor. Aramayı durdurup o moda geçebilirsin.` : 'Şu an bu modda arayan başka kimse yok. Arkadaşına haber ver, o da aynı modda "Rakip bul"a bassın.';
+    return;
+  }
+  st.hidden = true;
+}
+let netChecked = false;
+async function goOnline(){
+  show('online');
+  renderOnline();
+  const r = await ensureRoom();
+  netChecked = true;
+  if (r && screen === 'online') r.presence({ on: 1 }).catch(() => {});
+  if (screen === 'online') renderOnline();
+}
+function startSearch(){
+  if (!net.room || searching) return;
+  searching = true; pairing = false; searchSince = Date.now();
+  net.room.presence({ on: 1, q: qmode, since: searchSince, r: myStats.rating, uid: net.id }).catch(() => {});
+  clearInterval(searchTick);
+  searchTick = setInterval(() => { if (screen === 'online') renderOnlineStatus(); }, 1000);
+  renderOnline();
+  tryPair(net.room.peers());
+}
+function stopSearch(){
+  if (!searching && !pairing) return;
+  if (pairing && vs && vs.net && (vs.phase === 'wait' || vs.phase === 'found')) { clearTimeout(vsIntroT); $('vsov').hidden = true; leaveMatch(); vs = null; }
+  searching = false; pairing = false;
+  clearInterval(searchTick);
+  if (net.room) net.room.presence({ q: null, since: null }).catch(() => {});
+  if (screen === 'online') renderOnline();
+}
+function tryPair(peers){
+  if (!searching || pairing) return;
+  const q = peers.filter(p => p.kind === 'viewer' && p.presence && p.presence.q === qmode && typeof p.presence.since === 'number')
+                 .slice().sort((a, b) => (a.presence.since - b.presence.since) || (a.peer < b.peer ? -1 : 1));
+  const i = q.findIndex(p => p.sameTab);
+  if (i < 0) return;
+  const j = i % 2 === 0 ? i + 1 : i - 1;
+  if (j >= q.length) return;
+  const me = q[i], opp = q[j];
+  const name = 'm-' + hashStr([me.peer, opp.peer].sort().join('|') + ':' + Math.min(me.presence.since, opp.presence.since)).toString(36);
+  enterMatch(name + (qmode === 2 ? '-t' : ''), opp, me);
+}
+async function enterMatch(name, opp, me){
+  pairing = true; searching = false;
+  clearInterval(searchTick);
+  renderOnlineStatus();   // stay listed as searching until the opponent shows up, so they can see us too
+  let m;
+  try { m = await net.room.join(name); } catch (e) { pairing = false; startSearch(); return; }
+  matchRoom = m;
+  const oppUid = opp.by || (typeof opp.presence.uid === 'string' ? opp.presence.uid : null);
+  vs = { kind: qmode === 2 ? 'shared' : 'online', net: true, me: me.peer < opp.peer ? 1 : 2, phase: 'wait', oppPeer: opp.peer, oppUid, oppName: 'Rakip',
+         oppRating: num(opp.presence.r, 1000), myRating: myStats.rating, oppScore: 0, oppBoard: '',
+         oppDone: false, oppLeft: false, myDone: false, resulted: false,
+         practice: opp.isMe || (!!oppUid && oppUid === net.id), seed: hashStr(name) };
+  if (net.user && oppUid) net.user.profiles([oppUid]).then(ps => { if (vs && ps[oppUid] && ps[oppUid].name) { vs.oppName = ps[oppUid].name; $('vsOpName').textContent = vs.oppName; renderVs(); } });
+  m.presence({ st: 'ready', r: myStats.rating, uid: net.id, score: 0, b: '' }).catch(() => {});
+  matchUnsub = m.onPeers(ch => onMatchPeers(ch.peers), () => onMatchLost());
+  clearTimeout(matchWait);
+  matchWait = setTimeout(() => {
+    if (vs && vs.net && vs.phase === 'wait') { leaveMatch(); vs = null; pairing = false; if (screen === 'online') startSearch(); }
+  }, 9000);
+}
+function showVsIntro(){
+  const mt = tierOf(myStats.rating), ot = tierOf(vs.oppRating);
+  $('vsL').style.setProperty('--tc', mt.color); $('vsR').style.setProperty('--tc', ot.color);
+  $('vsMeR').textContent = `${mt.name} · ${myStats.rating}`;
+  $('vsOpName').textContent = vs.oppName;
+  $('vsOpR').textContent = `${ot.name} · ${vs.oppRating}`;
+  $('vsMode').textContent = `${QNAME[vs.kind === 'shared' ? 2 : 1]} · ${vs.friend ? (vs.kind === 'shared' ? `${vs.turnMs / 1000} sn hamle` : `${vs.dur / 60000} dk`) : vs.practice ? 'Antrenman' : 'Dereceli'}`;
+  $('vsov').hidden = false;
+  clearTimeout(vsIntroT);
+  vsIntroT = setTimeout(() => {
+    $('vsov').hidden = true; pairing = false;
+    if (!vs || !vs.net || vs.phase !== 'found') return;
+    vs.kind === 'shared' ? startNetShared() : beginRound();
+  }, 2600);
+}
+function abortFound(){
+  if (vs && vs.friend) { clearTimeout(vsIntroT); $('vsov').hidden = true; matchRoom = null; frToLobby('Arkadaşının bağlantısı koptu.'); return; }
+  clearTimeout(vsIntroT); $('vsov').hidden = true;
+  leaveMatch(); vs = null; pairing = false;
+  if (screen === 'online') startSearch();
+}
+function onMatchPeers(peers){
+  if (!vs || !vs.net) return;
+  const o = peers.find(p => p.peer === vs.oppPeer);
+  if (vs.kind === 'shared' && o && o.presence && typeof o.presence.mv === 'string' && /^[0-9a-z]*$/.test(o.presence.mv) && o.presence.mv.length > (vs.oppMoves || '').length) vs.oppMoves = o.presence.mv;
+  if (vs.phase === 'wait') {
+    if (o && o.presence && o.presence.st) { clearTimeout(matchWait); vs.phase = 'found'; if (net.room) net.room.presence({ q: null, since: null }).catch(() => {}); sfx.found(); buzz([20, 40, 20]); renderOnlineStatus(); showVsIntro(); }
+    return;
+  }
+  if (vs.phase === 'found') { if (!o) abortFound(); return; }
+  if (vs.friend && o && o.presence.lob === 1) {   // opponent already went back to the lobby: keep their final state
+    if (vs.kind === 'online' && !vs.oppDone) { vs.oppDone = true; maybeResult(); }
+    return;
+  }
+  if (vs.kind === 'shared') {
+    if (!o) { if (!vs.resulted && !vs.myDone) { vs.oppLeft = true; finishRound('oppleft'); } return; }
+    pumpRemote();
+    return;
+  }
+  if (!o) {
+    if (!vs.oppDone && !vs.resulted) { vs.oppLeft = true; vs.oppDone = true; if (!vs.myDone) finishRound('oppleft'); else maybeResult(); }
+    return;
+  }
+  const sc = num(o.presence.score, vs.oppScore);
+  vs.oppScore = Math.max(0, Math.floor(sc));
+  if (typeof o.presence.b === 'string' && o.presence.b.length === 64) vs.oppBoard = o.presence.b;
+  if (o.presence.st === 'done' && !vs.oppDone) { vs.oppDone = true; maybeResult(); }
+  renderVs();
+}
+function onMatchLost(){
+  if (!vs || !vs.net || vs.resulted) return;
+  matchRoom = null;
+  if (vs.phase === 'wait' || vs.phase === 'found') { clearTimeout(vsIntroT); $('vsov').hidden = true; vs = null; pairing = false; if (screen === 'online') startSearch(); return; }
+  if (vs.kind === 'shared') { vs.lost = true; if (!vs.myDone) finishRound('lost'); return; }
+  vs.oppDone = true; vs.lost = true;
+  if (!vs.myDone) finishRound('lost'); else maybeResult();
+}
+function leaveMatchSoon(){   // let the opponent receive our final presence before we go
+  const m = matchRoom, u = matchUnsub;
+  matchRoom = null; matchUnsub = null; clearTimeout(matchWait);
+  if (u) { try { u(); } catch (e) {} }
+  if (m && m !== fr.room) setTimeout(() => m.leave().catch(() => {}), 3000);
+}
+function leaveMatch(){
+  clearTimeout(matchWait);
+  if (matchUnsub) { try { matchUnsub(); } catch (e) {} matchUnsub = null; }
+  if (matchRoom) { if (matchRoom !== fr.room) matchRoom.leave().catch(() => {}); matchRoom = null; }
+}
+
+/* ---------- friend rooms: invite code, 2 players, host picks the rules ---------- */
+const GAME_URL = 'https://claude.ai/artifact/4v9t6UrPhoV5r8aH24NsER';
+const FR_ABC = 'ABCDEFGHJKLMNPRSTUVYZ';
+const FR_TIMES = { 1: [[60000, '1 dk'], [120000, '2 dk'], [180000, '3 dk']], 2: [[10000, '10 sn'], [20000, '20 sn'], [30000, '30 sn']] };
+const fr = { room: null, unsub: null, code: '', host: false, ok: false, since: 0, set: { m: 1, t: 0 }, peers: [], oppPeer: null, go: 0, seenGo: 0, joinT: 0, msg: '', msgT: 0 };
+const frSet = s => ({ m: s && s.m === 2 ? 2 : 1, t: s && (s.t === 1 || s.t === 2) ? s.t : 0 });
+const frBySince = (a, b) => (num(a.presence.since, 0) - num(b.presence.since, 0)) || (a.peer < b.peer ? -1 : 1);
+const frUid = p => p.by || (typeof p.presence.uid === 'string' ? p.presence.uid : null);
+function frCodeGen(){ let c = ''; for (let i = 0; i < 4; i++) c += FR_ABC[Math.floor(Math.random() * FR_ABC.length)]; return c; }
+function frOthers(){ return fr.peers.filter(p => !p.sameTab && p.kind === 'viewer' && p.presence && p.presence.fr === 1); }
+function frOpp(){ return fr.oppPeer ? fr.peers.find(p => p.peer === fr.oppPeer) || null : null; }
+function frSay(msg){ fr.msg = msg || ''; clearTimeout(fr.msgT); renderFriend(); }
+function goFriend(){
+  fr.msg = '';
+  show('friend');
+  renderFriend();
+  ensureRoom().then(() => { netChecked = true; });
+}
+async function frOpen(code, host){
+  frLeave();
+  fr.msg = ''; fr.code = code; fr.host = host; fr.ok = host; fr.since = Date.now();
+  if (host) fr.set = frSet(fr.set);
+  renderFriend();
+  const r = await ensureRoom();
+  netChecked = true;
+  if (fr.code !== code) return;
+  if (!r) { fr.code = ''; frSay('Arkadaşla oyna bu görünümde açılamadı. Oyunu claude.ai hesabınla açtığından emin ol.'); return; }
+  let m;
+  try { m = await r.join('f-' + code.toLowerCase()); } catch (e) { if (fr.code === code) { fr.code = ''; frSay('Odaya bağlanılamadı. Tekrar dene.'); } return; }
+  if (fr.code !== code || screen !== 'friend') { m.leave().catch(() => {}); return; }
+  fr.room = m;
+  m.presence({ fr: 1, host, since: fr.since, uid: net.id, r: myStats.rating, lob: 1, st: null, score: 0, b: '', mv: '', set: host ? fr.set : null, go: 0, seed: null }).catch(() => {});
+  fr.unsub = m.onPeers(ch => frPeers(ch.peers), () => frLost());
+  if (!host) {
+    clearTimeout(fr.joinT);
+    fr.joinT = setTimeout(() => { if (fr.room === m && !fr.ok) { frLeave(); frSay(`${code} kodlu açık bir oda bulunamadı. Kodu kontrol et.`); } }, 7000);
+  }
+}
+function frLeave(){
+  clearTimeout(fr.joinT);
+  if (fr.unsub) { try { fr.unsub(); } catch (e) {} }
+  if (fr.room) { if (matchRoom === fr.room) matchRoom = null; fr.room.leave().catch(() => {}); }
+  Object.assign(fr, { room: null, unsub: null, code: '', ok: false, peers: [], oppPeer: null, go: 0, seenGo: 0 });
+}
+function frLost(){
+  if (vs && vs.friend) onMatchLost();
+  frLeave();
+  if (screen === 'friend') frSay('Oda bağlantısı koptu.');
+}
+function frPeers(peers){
+  fr.peers = peers;
+  const others = frOthers(), inMatch = !!(vs && vs.friend);
+  if (fr.host) {
+    if (!inMatch && others.some(p => p.presence.host && num(p.presence.since, 0) < fr.since)) { frOpen(frCodeGen(), true); return; }   // someone already owns this code
+    const g = others.filter(p => !p.presence.host).sort(frBySince)[0];
+    if (!inMatch && (g ? g.peer : null) !== fr.oppPeer) { fr.oppPeer = g ? g.peer : null; fr.msg = ''; if (g) { sfx.found(); buzz(15); } }
+  } else {
+    const h = others.filter(p => p.presence.host).sort(frBySince)[0];
+    if (!fr.ok && h) {
+      const meP = peers.find(p => p.sameTab);
+      const ahead = others.some(p => !p.presence.host && typeof p.presence.since === 'number' && (p.presence.since < fr.since || (p.presence.since === fr.since && meP && p.peer < meP.peer)));
+      if (ahead) { frLeave(); frSay('Bu oda dolu. Odalar 2 kişilik.'); return; }
+      fr.ok = true; clearTimeout(fr.joinT); fr.seenGo = num(h.presence.go, 0); sfx.found(); buzz(15);
+    }
+    if (fr.ok && !h && !inMatch) { frLeave(); frSay('Oda sahibi odadan ayrıldı.'); return; }
+    if (h) {
+      if (!inMatch) fr.oppPeer = h.peer;
+      fr.set = frSet(h.presence.set);
+      const go = num(h.presence.go, 0);
+      if (go > fr.seenGo) { fr.seenGo = go; if (!vs && screen === 'friend' && typeof h.presence.seed === 'number') frBegin(h.presence.seed); }
+    }
+  }
+  if (vs && vs.friend) onMatchPeers(peers);
+  renderFriend();
+}
+function frPick(m, t){
+  if (!fr.host || vs) return;
+  fr.set = frSet({ m, t });
+  if (fr.room) fr.room.presence({ set: fr.set }).catch(() => {});
+  renderFriend();
+}
+function frStart(){
+  const o = frOpp();
+  if (!fr.host || !fr.room || vs || !o || o.presence.lob !== 1) return;
+  fr.go++; fr.msg = '';
+  const seed = (Math.random() * 2147483647) | 0;
+  frBegin(seed, { go: fr.go, seed, set: fr.set });
+}
+function frBegin(seed, extra){
+  const o = frOpp();
+  if (!o || !fr.room) return;
+  const s = fr.set, oppUid = frUid(o);
+  matchRoom = fr.room; matchUnsub = null;
+  vs = { kind: s.m === 2 ? 'shared' : 'online', net: true, friend: true, practice: true, me: fr.host ? 1 : 2, phase: 'wait',
+         oppPeer: o.peer, oppUid, oppName: (oppUid && nameCache[oppUid]) || 'Arkadaşın', oppRating: num(o.presence.r, 1000), myRating: myStats.rating,
+         oppScore: 0, oppBoard: '', oppDone: false, oppLeft: false, myDone: false, resulted: false, seed: seed >>> 0 };
+  if (s.m === 2) vs.turnMs = FR_TIMES[2][s.t][0]; else vs.dur = FR_TIMES[1][s.t][0];
+  fr.room.presence(Object.assign({ lob: 0, st: 'ready', score: 0, b: '', mv: '' }, extra || {})).catch(() => {});
+  clearTimeout(matchWait);
+  matchWait = setTimeout(() => { if (vs && vs.friend && vs.phase === 'wait') frToLobby('Arkadaşın maça bağlanamadı. Tekrar başlatmayı dene.'); }, 9000);
+  renderFriend();
+  onMatchPeers(fr.peers);
+}
+function frToLobby(msg){
+  vs = null; clearTimeout(matchWait);
+  if (fr.room && !fr.host && !frOthers().some(p => p.presence.host)) { frLeave(); msg = 'Oda sahibi odadan ayrıldı.'; }
+  show('friend');
+  if (fr.room) {
+    fr.room.presence({ lob: 1, st: null, score: 0, b: '', mv: '' }).catch(() => {});
+    if (!fr.host) { const h = frOthers().find(p => p.presence.host); if (h) fr.seenGo = Math.max(fr.seenGo, num(h.presence.go, 0)); }
+  }
+  frSay(msg);
+}
+async function frInvite(){
+  const text = `Blok Patlat'ta benimle oyna!\n1. Oyunu aç: ${GAME_URL}\n2. Online > Arkadaşla oyna\n3. Oda kodu: ${fr.code}`;
+  try { if (navigator.share) { await navigator.share({ text }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
+  let ok = false;
+  try { await navigator.clipboard.writeText(text); ok = true; } catch (e) {
+    try { const ta = document.createElement('textarea'); ta.value = text; ta.style.cssText = 'position:fixed;opacity:0;left:0;top:0'; document.body.appendChild(ta); ta.select(); ok = document.execCommand('copy'); ta.remove(); } catch (e2) {}
+  }
+  if (ok) { frSay('Davet kopyalandı. Arkadaşına yapıştırıp gönder.'); fr.msgT = setTimeout(() => { fr.msg = ''; renderFriend(); }, 4000); }
+  else showModal({ title: 'Daveti gönder', body: `<p>Bu metni kopyalayıp arkadaşına gönder:</p><p class="frtext">${esc(text).replace(/\n/g, '<br>')}</p>`, primary: ['Tamam', () => {}] });
+}
+function frJoin(){
+  const code = $('frCode').value.toUpperCase().replace(/[^A-Z]/g, '');
+  if (code.length !== 4) { frSay('Oda kodu 4 harften oluşuyor.'); return; }
+  $('frCode').blur();
+  frOpen(code, false);
+}
+function renderFriend(){
+  if (screen !== 'friend') return;
+  const inRoom = !!fr.code, st = $('frStatus'), go = $('frGo');
+  $('frStart').hidden = inRoom; $('frLobby').hidden = !inRoom;
+  go.hidden = true;
+  if (!inRoom) { st.hidden = !fr.msg; st.textContent = fr.msg; return; }
+  $('frCodeVal').textContent = fr.code;
+  const o = frOpp(), oUid = o && frUid(o), oReady = !!o && o.presence.lob === 1;
+  if (oUid && !(oUid in nameCache) && net.user) {
+    nameCache[oUid] = '';
+    net.user.profiles([oUid]).then(ps => { nameCache[oUid] = (ps[oUid] && ps[oUid].name) || ''; if (vs && vs.friend && nameCache[oUid]) vs.oppName = nameCache[oUid]; renderFriend(); }).catch(() => {});
+  }
+  const oName = (oUid && nameCache[oUid]) || 'Arkadaşın';
+  const slot = (el, name, sub, on) => { el.className = 'frslot' + (on ? ' on' : ' wait'); el.innerHTML = `<b>${esc(name)}</b><small>${esc(sub)}</small>`; };
+  if (fr.host) { slot($('frSlot1'), 'Sen', 'Oda sahibi', true); slot($('frSlot2'), o ? oName : 'Bekleniyor…', o ? (oReady ? 'Hazır' : 'Hazırlanıyor') : 'Misafir', !!o); }
+  else { slot($('frSlot1'), o ? oName : 'Bağlanıyor…', 'Oda sahibi', !!o); slot($('frSlot2'), 'Sen', 'Misafir', fr.ok); }
+  const s = fr.set, ed = fr.host && !vs;
+  [1, 2].forEach(m => { const b = $('frm' + m); b.classList.toggle('on', s.m === m); b.setAttribute('aria-checked', String(s.m === m)); b.disabled = !ed; });
+  $('frTimeLabel').textContent = s.m === 2 ? 'Hamle süresi' : 'Maç süresi';
+  [0, 1, 2].forEach(t => { const b = $('frt' + t); b.firstElementChild.textContent = FR_TIMES[s.m][t][1]; b.classList.toggle('on', s.t === t); b.setAttribute('aria-checked', String(s.t === t)); b.disabled = !ed; });
+  st.hidden = false;
+  st.textContent = fr.msg || (vs && vs.friend ? 'Maç başlıyor…'
+    : fr.host ? (!o ? 'Daveti gönder. Arkadaşın kodu girince burada görünür.' : !oReady ? 'Arkadaşın sonuç ekranında, lobiye dönmesi bekleniyor.' : 'İkiniz de hazırsınız. Ayarları seç ve başlat!')
+    : !fr.ok ? 'Odaya bağlanılıyor…' : 'Oda sahibi ayarları seçiyor. Başlatınca maç açılacak.');
+  if (fr.host) { go.hidden = false; go.disabled = !oReady || !!vs; }
+}
+
+/* ---------- duels (online and same-phone) ---------- */
+const oppMini = $('oppMini'), om = oppMini.getContext('2d');
+let lastMini = null;
+function renderVs(){
+  if (!vs) return;
+  if (vs.kind === 'online') {
+    $('meName').textContent = 'Sen';
+    $('oppName').textContent = vs.oppName;
+    $('oppScore').textContent = vs.oppScore;
+    oppMini.hidden = false;
+    if (vs.oppBoard !== lastMini) {
+      lastMini = vs.oppBoard;
+      om.clearRect(0, 0, 92, 92);
+      om.fillStyle = C_BOARD; rr(om, 0, 0, 92, 92, 10); om.fill();
+      for (let i = 0; i < 64; i++) {
+        const ch = vs.oppBoard[i];
+        const c = ch && ch !== '.' ? PAL[+ch] || PAL[GREY] : C_CELL;
+        om.fillStyle = c;
+        rr(om, 4 + (i % 8) * 10.5, 4 + Math.floor(i / 8) * 10.5, 9, 9, 2); om.fill();
+      }
+    }
+  } else if (vs.kind === 'shared') {
+    $('meName').textContent = vs.net ? 'Sen' : 'Oyuncu 1';
+    $('oppName').textContent = vs.net ? vs.oppName : 'Oyuncu 2';
+    oppMini.hidden = true;
+    const live = vs.phase !== 'end' && vs.phase !== 'wait' && vs.phase !== 'found', L = vs.net ? vs.me : 1;
+    $('vsbar').children[0].classList.toggle('turn', live && vs.p === L);
+    $('vsbar').children[1].classList.toggle('turn', live && vs.p !== L);
+  } else {
+    $('meName').textContent = `Oyuncu ${vs.p}`;
+    oppMini.hidden = true;
+    if (vs.p === 2) { $('oppName').textContent = 'Oyuncu 1 skoru'; $('oppScore').textContent = vs.scores[0]; }
+    else { $('oppName').textContent = 'Oyuncu 2'; $('oppScore').textContent = '?'; }
+  }
+}
+function clearTurnMarks(){ [...$('vsbar').children].forEach(c => c.classList.remove('turn')); }
+function beginRound(){
+  mode = vs.kind === 'online' ? 'duel' : 'local';
+  resetBoardState(); clearTurnMarks();
+  rng = mulberry32(vs.seed);
+  vs.phase = 'count'; vs.myDone = false;
+  vs.startAt = now() + 3000;
+  show('game');
+  tray = newTray(); refreshFit();
+  slotA = [0, 1, 2].map(i => ({ type: 'pop', t0: vs.startAt + i * 70 }));
+  setHudMode(); updateCombo(false);
+  const t = now();
+  ['3', '2', '1', 'Başla!'].forEach((s, i) => {
+    floats.push({ text: s, x: bx + B / 2, y: by + B / 2, t0: t + i * 1000, dur: 900, size: Math.min(B * (i === 3 ? 0.16 : 0.28), 110), color: i === 3 ? '#ffc83d' : '#ffffff', big: true });
+    later(() => sfx.tick(i === 3), i * 1000);
+  });
+}
+function finishRound(reason){
+  if (!vs || vs.myDone) return;
+  vs.myDone = true; vs.myScore = score; vs.phase = 'end';
+  over = true; overT0 = reason === 'stuck' ? now() + 300 : 0; kick(600);
+  drag = null; preview = null;
+  const msg = reason === 'time' ? 'Süre doldu!' : reason === 'stuck' ? (vs.kind === 'shared' ? (vs.net ? (vs.p === vs.me ? 'Sıkıştın!' : 'Rakip sıkıştı!') : `Oyuncu ${vs.p} sıkıştı!`) : 'Yer kalmadı!') : '';
+  if (msg) floats.push({ text: msg, x: bx + B / 2, y: by + B * 0.45, t0: now(), dur: 1400, size: Math.min(B * 0.1, 46), color: '#ffffff', big: true });
+  sfx.over(0);
+  renderHud(true);
+  if (vs.kind === 'online') {
+    if (matchRoom) matchRoom.presence({ st: 'done', score, b: boardStr() }).catch(() => {});
+    later(() => { if (vs && !vs.oppDone) { vs.oppDone = true; maybeResult(); } }, 25000);   // opponent froze: settle with their last score
+    later(maybeResult, 900);
+  } else if (vs.kind === 'shared') { renderVs(); if (vs.net) netPub(); later(sharedResult, 1500); }
+  else later(localNext, 1300);
+}
+function maybeResult(){
+  if (!vs || vs.kind !== 'online' || vs.resulted || !vs.myDone || !vs.oppDone) return;
+  vs.resulted = true;
+  const my = vs.myScore, op = vs.oppScore;
+  const S = vs.oppLeft || vs.lost ? (vs.oppLeft ? 1 : null) : my > op ? 1 : my < op ? 0 : 0.5;
+  const { title, rankLine } = settleRating(S);
+  leaveMatchSoon();
+  const oppLine = vs.oppLeft ? '<p>Rakip maçtan ayrıldı.</p>' : '';
+  const card = `<div class="versus"><div class="${my >= op ? 'win' : ''}"><span>Sen</span><b>${my}</b></div><i>-</i><div class="${op > my ? 'win' : ''}"><span>${esc(vs.oppName)}</span><b>${vs.oppLeft ? '-' : op}</b></div></div>`;
+  setTimeout(() => showModal({
+    title, body: card + oppLine + rankLine,
+    primary: vs.friend ? ['Lobiye dön', () => frToLobby()] : ['Yeni rakip bul', () => { vs = null; goOnline().then(startSearch); }],
+    secondary: ['Menü', () => { vs = null; show('menu'); }]
+  }), S === 1 ? 600 : 200);
+}
+function settleRating(S){
+  let delta = 0;
+  const ranked = !vs.practice && S !== null;
+  if (ranked) {
+    const E = 1 / (1 + Math.pow(10, (vs.oppRating - vs.myRating) / 400));
+    delta = Math.round(32 * (S - E));
+    if (S === 1 && delta < 1) delta = 1;
+    myStats.rating = Math.max(100, vs.myRating + delta);
+    if (S === 1) myStats.w++; else if (S === 0) myStats.l++; else myStats.d++;
+    saveStats();
+  }
+  if (S === 1) { confetti(); sfx.win(); buzz([30, 50, 30, 50, 60]); }
+  const tierBefore = tierOf(vs.myRating), tierAfter = tierOf(myStats.rating);
+  const rankLine = vs.friend ? '<p>Arkadaş maçı, rank puanı değişmez.</p>' : vs.practice ? '<p>Kendi hesabınla oynadığın için antrenman maçı sayıldı, rank puanı değişmedi.</p>'
+    : !ranked ? '<p>Maç sonuçlanamadı, rank puanın değişmedi.</p>'
+    : `<p>Rank puanı: <b class="${delta >= 0 ? 'up' : 'down'}">${myStats.rating} (${delta >= 0 ? '+' : ''}${delta})</b> · ${esc(tierAfter.name)}</p>` +
+      (tierAfter.name !== tierBefore.name ? `<p class="${delta > 0 ? 'gold' : ''}">${delta > 0 ? 'Yeni lig: ' : 'Lig düştü: '}${esc(tierAfter.name)}</p>` : '');
+  const title = S === 1 ? 'Kazandın!' : S === 0 ? 'Kaybettin' : S === 0.5 ? 'Berabere' : 'Bağlantı koptu';
+  return { title, rankLine };
+}
+function startLocal(){
+  vs = { kind: 'local', p: 1, scores: [0, 0], seed: (Math.random() * 2147483647) | 0, phase: 'intro' };
+  showModal({
+    title: 'Klasik mod',
+    body: '<p>Sırayla oynarsınız: önce Oyuncu 1, sonra Oyuncu 2. İkiniz de aynı bloklarla 1\'er dakika oynarsınız. Daha çok puan yapan kazanır.</p>',
+    primary: ['Oyuncu 1 başla', beginRound],
+    secondary: ['Vazgeç', () => { vs = null; }]
+  });
+}
+function localNext(){
+  if (!vs || vs.kind !== 'local') return;
+  vs.scores[vs.p - 1] = score;
+  if (vs.p === 1) {
+    showModal({
+      title: `Oyuncu 1: ${score} puan`,
+      body: '<p>Şimdi telefonu Oyuncu 2\'ye ver. Aynı bloklar onu bekliyor.</p>',
+      primary: ['Oyuncu 2 başla', () => { vs.p = 2; beginRound(); }],
+      secondary: ['Menü', () => { vs = null; show('menu'); }]
+    });
+  } else {
+    const [a, b] = vs.scores;
+    if (a !== b) { confetti(); sfx.win(); }
+    showModal({
+      title: a > b ? 'Oyuncu 1 kazandı!' : b > a ? 'Oyuncu 2 kazandı!' : 'Berabere!',
+      body: `<div class="versus"><div class="${a >= b ? 'win' : ''}"><span>Oyuncu 1</span><b>${a}</b></div><i>-</i><div class="${b >= a ? 'win' : ''}"><span>Oyuncu 2</span><b>${b}</b></div></div>`,
+      primary: ['Rövanş', () => { vs = { kind: 'local', p: 1, scores: [0, 0], seed: (Math.random() * 2147483647) | 0, phase: 'intro' }; beginRound(); }],
+      secondary: ['Menü', () => { vs = null; show('menu'); }]
+    });
+  }
+}
+function chooseLocal(){
+  showModal({
+    title: '2 kişi, aynı telefon',
+    body: `<div class="choices">
+      <button class="choice" data-m="classic"><b>Klasik</b><span>Sırayla 1'er dakika oynarsınız, ikinize de aynı bloklar gelir. Çok puan yapan kazanır.</span></button>
+      <button class="choice alt" data-m="shared"><b>Ortak tahta</b><span>Aynı tahtaya sırayla blok koyarsınız. Hattı kim tamamlarsa puan onun. Rakibini sıkıştır!</span></button>
+    </div>`,
+    secondary: ['Vazgeç', () => {}],
+    onBody: el => el.querySelectorAll('.choice').forEach(b => b.addEventListener('click', () => {
+      sfx.tap(); $('modal').hidden = true;
+      b.dataset.m === 'classic' ? startLocal() : introShared(1);
+    }))
+  });
+}
+function introShared(first){
+  showModal({
+    title: 'Ortak tahta',
+    body: `<p>Aynı tahtaya sırayla birer blok koyarsınız. Herkesin kendi 3 bloğu var, iki tarafa da aynı bloklar gelir.</p><p style="margin-top:8px">Bir hattı tamamlayan puanı alır. Sırası geldiğinde bloğunu koyacak yer bulamayan oyunu bitirir, rakibi <b class="gold">+${LOCK_BONUS}</b> bonus alır. Sonunda puanı yüksek olan kazanır.</p>`,
+    primary: [`Oyuncu ${first} başla`, () => startShared(first)],
+    secondary: ['Vazgeç', () => { vs = null; }]
+  });
+}
+function startShared(first){
+  const seed = (Math.random() * 2147483647) | 0;
+  mode = 'shared';
+  resetBoardState();
+  vs = { kind: 'shared', first, p: first, scores: [0, 0], combo: [0, 0], since: [0, 0], trays: [null, null],
+         rngs: [mulberry32(seed), mulberry32(seed)], phase: 'play', myDone: false };
+  vs.trays = [0, 1].map(i => { rng = vs.rngs[i]; return newTray(); });
+  show('game');
+  setHudMode();
+  loadTurn(first, 200);
+}
+function saveTurn(){
+  const i = vs.p - 1;
+  vs.trays[i] = tray; vs.scores[i] = score; vs.combo[i] = combo; vs.since[i] = sinceClear;
+}
+function loadTurn(p, delay){
+  const i = p - 1;
+  vs.p = p;
+  tray = vs.trays[i]; rng = vs.rngs[i];
+  score = shown = vs.scores[i]; combo = vs.combo[i]; sinceClear = vs.since[i];
+  refreshFit(); popTray(delay); updateCombo(false);
+  renderVs(); renderHud(true);
+  vs.turnEnd = now() + delay + (vs.turnMs || TURN_TIME);
+  const L = vs.net ? vs.me : 1;
+  floats = floats.filter(f => !f.turn);
+  floats.push({ turn: true, text: vs.net ? (p === vs.me ? 'Senin sıran' : 'Rakibin sırası') : `Oyuncu ${p}`, x: bx + B / 2, y: by + B + (H - by - B) * 0.12, t0: now() + delay, dur: 900, size: Math.min(cs * 0.6, 26), color: p === L ? '#ffc83d' : '#50bdf0', big: true });
+  if (vs.net && p === vs.me) { sfx.tick(true); buzz(12); }
+  if (!trayFit.some(Boolean)) finishRound('stuck');
+}
+function endTurn(){
+  if (tray.every(x => !x)) tray = newTray();
+  saveTurn();
+  vs.phase = 'swap';
+  if (vs.net) netPub();
+  later(() => {
+    if (!vs || vs.kind !== 'shared' || vs.phase !== 'swap') return;
+    vs.phase = 'play';
+    loadTurn(3 - vs.p, 0);
+    pumpRemote();
+  }, 450);
+}
+function skipTurn(mine){
+  if (mine) vs.myMoves += SKIP_CODE.toString(36);
+  floats.push({ text: mine ? 'Süre doldu, sıra geçti' : 'Rakip pas geçti', x: bx + B / 2, y: by + B * 0.45, t0: now(), dur: 1200, size: Math.min(B * 0.07, 30), color: '#ffffff', big: true });
+  sfx.back();
+  endTurn();
+}
+function netPub(){
+  if (matchRoom && vs) matchRoom.presence({ st: vs.phase === 'end' ? 'done' : 'play', mv: vs.myMoves || '', r: vs.myRating, uid: net.id }).catch(() => {});
+}
+function pumpRemote(){
+  if (!vs || !vs.net || vs.kind !== 'shared' || vs.phase !== 'play' || vs.p === vs.me) return;
+  if (vs.oppMoves.length < (vs.oppApplied + 1) * 2) return;
+  const code = parseInt(vs.oppMoves.substr(vs.oppApplied * 2, 2), 36);
+  vs.oppApplied++;
+  if (code === SKIP_CODE) { skipTurn(false); return; }
+  const i = Math.floor(code / 64), r = (code >> 3) & 7, c = code & 7;
+  const p = tray[i];
+  if (!(i < 3) || !p || !fits(p, r, c)) { vs.lost = true; finishRound('lost'); return; }
+  const cells = SH[p.s].cells.map(([y, x]) => (r + y) * N + c + x);
+  place({ i, p }, { r, c, cells, lines: new Set(), color: p.color }, slotHome(i), now());
+}
+function startNetShared(){
+  mode = 'shared';
+  resetBoardState(); clearTurnMarks();
+  const first = 1 + (vs.seed & 1);
+  Object.assign(vs, { first, p: first, scores: [0, 0], combo: [0, 0], since: [0, 0], phase: 'play', myDone: false,
+                      rngs: [mulberry32(vs.seed), mulberry32(vs.seed)], myMoves: '', oppMoves: vs.oppMoves || '', oppApplied: 0 });
+  vs.trays = [0, 1].map(i => { rng = vs.rngs[i]; return newTray(); });
+  show('game');
+  setHudMode();
+  netPub();
+  loadTurn(first, 200);
+  pumpRemote();
+}
+function netSharedResult(){
+  if (vs.resulted) return;
+  vs.resulted = true;
+  saveTurn();
+  const me = vs.me, op = 3 - me;
+  let note = '';
+  if (!vs.oppLeft && !vs.lost) {
+    const stuck = vs.p;
+    vs.scores[(3 - stuck) - 1] += LOCK_BONUS;
+    note = stuck === me ? `<p>Hamle yapamadın, rakibin <b class="gold">+${LOCK_BONUS}</b> bonus aldı.</p>` : `<p>Rakibin hamle yapamadı, <b class="gold">+${LOCK_BONUS}</b> bonus senin!</p>`;
+  }
+  renderHud(true);
+  const my = vs.scores[me - 1], ops = vs.scores[op - 1];
+  const S = vs.lost ? null : vs.oppLeft ? 1 : my > ops ? 1 : my < ops ? 0 : 0.5;
+  const { title, rankLine } = settleRating(S);
+  netPub();
+  leaveMatchSoon();
+  const oppLine = vs.oppLeft ? '<p>Rakip maçtan ayrıldı.</p>' : '';
+  const card = `<div class="versus"><div class="${my >= ops ? 'win' : ''}"><span>Sen</span><b>${my}</b></div><i>-</i><div class="${ops > my ? 'win' : ''}"><span>${esc(vs.oppName)}</span><b>${ops}</b></div></div>`;
+  setTimeout(() => showModal({
+    title, body: card + note + oppLine + rankLine,
+    primary: vs.friend ? ['Lobiye dön', () => frToLobby()] : ['Yeni rakip bul', () => { vs = null; goOnline().then(startSearch); }],
+    secondary: ['Menü', () => { vs = null; show('menu'); }]
+  }), S === 1 ? 600 : 200);
+}
+function sharedResult(){
+  if (!vs || vs.kind !== 'shared') return;
+  if (vs.net) { netSharedResult(); return; }
+  saveTurn();
+  const stuck = vs.p, other = 3 - stuck;
+  vs.scores[other - 1] += LOCK_BONUS;
+  const [a, b] = vs.scores;
+  renderHud(true);
+  if (a !== b) { confetti(); sfx.win(); }
+  const next = 3 - vs.first;
+  showModal({
+    title: a > b ? 'Oyuncu 1 kazandı!' : b > a ? 'Oyuncu 2 kazandı!' : 'Berabere!',
+    body: `<div class="versus"><div class="${a >= b ? 'win' : ''}"><span>Oyuncu 1</span><b>${a}</b></div><i>-</i><div class="${b >= a ? 'win' : ''}"><span>Oyuncu 2</span><b>${b}</b></div></div><p>Oyuncu ${stuck} hamle yapamadı, Oyuncu ${other} <b class="gold">+${LOCK_BONUS}</b> bonus aldı.</p>`,
+    primary: [`Rövanş (Oyuncu ${next} başlar)`, () => startShared(next)],
+    secondary: ['Menü', () => { vs = null; show('menu'); }]
+  });
+}
+function quitDuel(){
+  if (!vs) return;
+  clearTimeout(vsIntroT); $('vsov').hidden = true;
+  if (vs.net && !vs.resulted && !vs.practice && vs.phase !== 'wait' && vs.phase !== 'found' && vs.phase !== 'end') {
+    vs.resulted = true;
+    const E = 1 / (1 + Math.pow(10, (vs.oppRating - vs.myRating) / 400));
+    myStats.rating = Math.max(100, vs.myRating + Math.round(32 * (0 - E)));
+    myStats.l++;
+    saveStats();
+  }
+  leaveMatch();
+  vs = null;
+  show('menu');
+}
+
+/* ---------- leaderboard ---------- */
+let rankTab = 'rating', ranksFrom = 'menu';
+function setTab(t){
+  rankTab = t;
+  $('tabRating').classList.toggle('on', t === 'rating'); $('tabRating').setAttribute('aria-selected', String(t === 'rating'));
+  $('tabBest').classList.toggle('on', t === 'best'); $('tabBest').setAttribute('aria-selected', String(t === 'best'));
+  loadRanks();
+}
+let rankReq = 0;
+async function loadRanks(){
+  const list = $('rankList'), note = $('rankNote');
+  const req = ++rankReq;
+  list.innerHTML = '';
+  if (!net.db) { note.textContent = netChecked || !window.claude ? 'Sıralama bu görünümde açılamadı. Oyunu claude.ai hesabınla açınca görünür.' : 'Yükleniyor…'; return; }
+  note.textContent = 'Yükleniyor…';
+  let rows;
+  try {
+    const snap = await net.db.collection('players').orderBy(rankTab, 'desc').limit(50).get();
+    rows = snap.docs.map(d => Object.assign({ id: d.id }, d.data()))
+      .filter(r => rankTab === 'rating' ? num(r.games, 0) > 0 : num(r.best, 0) > 0);
+  } catch (e) { if (req === rankReq) note.textContent = 'Liste yüklenemedi. Biraz sonra tekrar dene.'; return; }
+  const ps = net.user ? await net.user.profiles(rows.map(r => r.id)) : {};
+  if (req !== rankReq) return;
+  note.textContent = rows.length ? '' : (rankTab === 'rating' ? 'Henüz dereceli maç oynayan yok. İlk sen ol!' : 'Henüz rekor yok. Sonsuz modda bir el oyna!');
+  rows.forEach((r, i) => {
+    const p = ps[r.id] || {};
+    const el = document.createElement('div');
+    el.className = 'row' + (r.id === net.id ? ' me' : '');
+    const pos = document.createElement('span'); pos.className = 'pos'; pos.textContent = i + 1;
+    const img = document.createElement('img'); img.alt = ''; if (p.avatarUrl) img.src = p.avatarUrl;
+    const who = document.createElement('div'); who.className = 'who';
+    const nm = document.createElement('div'); nm.className = 'nm'; nm.textContent = (p.name || 'Oyuncu') + (r.id === net.id ? ' (sen)' : '');
+    const sub = document.createElement('div'); sub.className = 'sub';
+    const val = document.createElement('span'); val.className = 'val';
+    if (rankTab === 'rating') {
+      const t = tierOf(num(r.rating, 1000));
+      const chip = document.createElement('span'); chip.className = 'chip'; chip.style.setProperty('--tc', t.color); chip.textContent = t.name;
+      const wl = document.createElement('span'); wl.textContent = `${num(r.w, 0)}G ${num(r.l, 0)}M`;
+      sub.append(chip, wl);
+      val.textContent = num(r.rating, 1000);
+    } else {
+      sub.textContent = 'Sonsuz mod';
+      val.textContent = num(r.best, 0);
+    }
+    who.append(nm, sub);
+    el.append(pos, img, who, val);
+    list.appendChild(el);
+  });
+}
+
+/* ---------- screens ---------- */
+function show(name){
+  saveBest();
+  if (name !== 'game') clearTimers();
+  if (screen === 'online' && name !== 'online') stopSearch();
+  if (net.room && name !== 'online' && name !== 'game') net.room.presence({ on: null, q: null }).catch(() => {});
+  if (fr.code && name !== 'friend' && name !== 'game') frLeave();
+  screen = name;
+  ['menu', 'map', 'online', 'friend', 'ranks', 'game'].forEach(s => { $(s).hidden = s !== name; });
+  $('modal').hidden = true;
+  if (name === 'menu') renderMenu();
+  if (name === 'map') renderMap();
+  if (name === 'ranks') loadRanks();
+  if (name === 'game') layout();
+  if (net.room && name === 'game' && vs && vs.net) net.room.presence({ on: 2, q: null, since: null }).catch(() => {});
+}
+function renderMenu(){
+  const next = Math.min(prog.unlocked, LEVELS.length);
+  $('advSub').textContent = `Bölüm ${next} · ${starSum()}/${LEVELS.length * 3} yıldız`;
+  $('endSub').textContent = 'En iyi: ' + best;
+  const t = tierOf(myStats.rating);
+  $('onSub').textContent = `${t.name} · ${myStats.rating}`;
+}
+function renderMap(){
+  $('starTotal').textContent = `${starSum()}/${LEVELS.length * 3}`;
+  const path = $('path');
+  path.innerHTML = '';
+  let cur = null;
+  LEVELS.forEach((L, i) => {
+    const row = document.createElement('div');
+    row.className = 'nrow';
+    row.style.setProperty('--dx', Math.round(Math.sin(i * 0.95) * 90) + 'px');
+    const b = document.createElement('button');
+    const st = prog.stars[i] || 0;
+    const locked = i + 1 > prog.unlocked;
+    b.className = 'node ' + (locked ? 'locked' : st ? 'done' : 'current');
+    if (locked) { b.innerHTML = svgUse('i-lock'); b.setAttribute('aria-label', `Bölüm ${i + 1}, kilitli`); b.disabled = true; }
+    else {
+      b.textContent = i + 1;
+      b.setAttribute('aria-label', `Bölüm ${i + 1}${st ? `, ${st} yıldız` : ''}`);
+      b.addEventListener('click', () => { sfx.unlock(); sfx.tap(); startLevel(i); });
+    }
+    if (!locked && !st && !cur) cur = row;
+    const s = document.createElement('div');
+    s.className = 'nstars';
+    if (!locked && st) s.innerHTML = [0, 1, 2].map(k => svgUse('i-star', k < st ? 'on' : '')).join('');
+    row.append(b, s);
+    path.appendChild(row);
+  });
+  const soon = document.createElement('p');
+  soon.className = 'soon'; soon.textContent = 'Yeni bölümler yakında';
+  path.appendChild(soon);
+  if (cur) requestAnimationFrame(() => { path.scrollTop = Math.max(0, cur.offsetTop - path.clientHeight / 2); });
+}
+
+/* ---------- starting games ---------- */
+function resetBoardState(){
+  clearTimers();
+  grid = Array(N * N).fill(null); gems = Array(N * N).fill(false);
+  iceHp.fill(0); iceFx.fill(0);
+  landA.fill(null); clearA.fill(null);
+  parts = []; floats = []; flashes = []; shake = 0;
+  score = 0; shown = 0; combo = 0; sinceClear = 0; over = false; won = false; overT0 = 0;
+  goalCount = 0; goalShown = 0; moves = 0;
+  drag = null; preview = null; rng = null;
+  hint = null; idleSince = now() + 600; kick();
+}
+function startEndless(){
+  saveBest();
+  mode = 'endless'; vs = null;
+  resetBoardState();
+  show('game');
+  tray = newTray(); refreshFit(); popTray(80);
+  setHudMode(); updateCombo(false);
+}
+function startLevel(i){
+  mode = 'level'; lvl = i; vs = null;
+  resetBoardState();
+  const L = LEVELS[i];
+  const t = now() + 60;
+  L.b.forEach((row, y) => [...row].forEach((ch, x) => {
+    const idx = y * N + x;
+    if (ch === '.') return;
+    if (ch === 'g') { grid[idx] = (y * 3 + x) % 7; gems[idx] = true; }
+    else if (ch === 'i' || ch === 'I') { grid[idx] = ICE; iceHp[idx] = ch === 'I' ? 2 : 1; }
+    else grid[idx] = +ch;
+    landA[idx] = { t0: t + (y + x) * 28, x: 0, y: 0, s: 0, appear: true };
+  }));
+  show('game');
+  tray = newTray(); refreshFit(); popTray(300);
+  setHudMode(); updateCombo(false);
+  const tip = L.thick && !store('blokpatlat_tip_thick') ? 'thick' : L.ice && !store('blokpatlat_tip_ice') ? 'ice' : null;
+  if (tip) {
+    store('blokpatlat_tip_ice', '1'); if (tip === 'thick') store('blokpatlat_tip_thick', '1');
+    later(() => showModal({
+      title: tip === 'thick' ? 'Kalın buz!' : 'Yeni: Buzlu bloklar',
+      body: `<div class="bigstars">${svgUse('i-ice')}</div>` + (tip === 'thick'
+        ? '<p>Kalın buz iki vuruşta kırılır. İlk patlamada çatlar, ikincisinde dağılır.</p>'
+        : '<p>Buzun üstüne blok koyamazsın. Buzun içinden ya da hemen yanından geçen bir hattı patlatınca buz kırılır ve oraya blok koyabilirsin.</p>'),
+      primary: ['Anladım', () => { idleSince = now(); }]
+    }), 700);
+  }
+}
+
+/* ---------- render loop ---------- */
+function busyNow(t){
+  if (drag || parts.length || floats.length || flashes.length || shake > 0.3) return true;
+  if (hint && hint.cells && !over && !won) return true;
+  if (slotA[0] || slotA[1] || slotA[2]) return true;
+  if (over && overT0 && t < overT0 + N * 55 + 200) return true;
+  for (let i = 0; i < N * N; i++) if (landA[i] || clearA[i] || iceFx[i]) return true;
+  return false;
+}
+let last = now();
+function frame(){
+  requestAnimationFrame(frame);
+  const t = now(), dt = Math.min(0.05, (t - last) / 1000); last = t;
+  if (screen !== 'game' || !boardImg) return;
+
+  if (vs && vs.phase === 'count' && t >= vs.startAt) { vs.phase = 'play'; vs.endAt = vs.startAt + vsTime(); }
+  if (vs && vs.phase === 'play' && t >= vs.endAt) finishRound('time');
+  if (vs && vs.net && vs.kind === 'shared' && vs.phase === 'play') {
+    if (vs.p === vs.me && t >= vs.turnEnd) { if (drag) { preview = null; drop(); } skipTurn(true); }
+    else if (vs.p !== vs.me && t >= vs.turnEnd + 15000) { vs.oppLeft = true; finishRound('oppleft'); }
+  }
+
+  if ((mode === 'endless' || mode === 'level') && !over && !won && !drag && !hint && t - idleSince > HINT_DELAY && $('modal').hidden) { hint = findHint(); hint.t0 = t; }
+  shown += (score - shown) * Math.min(1, dt * 10);
+  if (Math.abs(score - shown) < 0.5) shown = score;
+  renderHud(false);
+
+  if (busyNow(t)) drawUntil = Math.max(drawUntil, t + 120);
+  if (t > drawUntil) { drewLast = false; return; }
+  if (drewLast && !lowQ) {   // slow device: drop resolution and halve particles, remember for next time
+    slowFrames = dt > 0.028 ? slowFrames + 1 : Math.max(0, slowFrames - 0.5);
+    if (slowFrames > 45) { lowQ = true; store('blokpatlat_lowq', '1'); layout(); }
+  }
+  drewLast = true;
+
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+
+  shake *= Math.exp(-dt * 11);
+  const sx = shake > 0.3 ? (Math.random() - 0.5) * 2 * shake : 0, sy = shake > 0.3 ? (Math.random() - 0.5) * 2 * shake : 0;
+  ctx.save(); ctx.translate(sx, sy);
+  ctx.drawImage(boardImg, bx, by, B, B);
+
+  const pulse = 0.18 + 0.12 * Math.sin(t / 95);
+  for (let i = 0; i < N * N; i++) {
+    const ca = clearA[i];
+    let col = grid[i], gem = gems[i];
+    if (col === null && !ca) continue;
+    let x = cellCX(i), y = cellCY(i), sc = 1, rot = 0, white = 0;
+    let hp = iceHp[i];
+    if (ca) {
+      col = ca.color; gem = ca.gem; hp = 1;
+      const k = (t - ca.t0) / 260;
+      if (k >= 1) { clearA[i] = null; continue; }
+      if (k > 0) {
+        if (!ca.spawned) { ca.spawned = true; spawn(i, ca.fx, ca.color === ICE ? 9 : 6); if (ca.gem) flyGem(i); if (ca.color === ICE) sfx.shatter(); }
+        sc = 1 - easeInCubic(k); rot = k * 0.9; white = 0.4 * (1 - k);
+        if (ca.gem) gem = false;
+      } else {
+        if (col !== ICE) col = ca.fx;
+        white = clamp01((t - (ca.t0 - 180)) / 180) * 0.45;
+      }
+    } else if (preview && preview.lines.has(i)) {
+      if (col !== ICE) col = preview.color;
+      white = pulse;
+    }
+    if (iceFx[i] && t >= iceFx[i]) {
+      const e = (t - iceFx[i]) / 380;
+      if (e >= 1) iceFx[i] = 0; else { white = Math.max(white, 0.75 * (1 - e)); rot = Math.sin(e * 30) * 0.08 * (1 - e); }
+    }
+    const la = landA[i];
+    if (la) {
+      const e = t - la.t0;
+      if (la.appear) {
+        if (e < 260) sc *= easeOutBack(clamp01(e / 260)); else landA[i] = null;
+      } else if (e < 110) { const k = easeOutCubic(e / 110); x = lerp(la.x, x, k); y = lerp(la.y, y, k); sc *= lerp(la.s, 1, k); }
+      else if (e < 300) { sc *= 1 - 0.12 * Math.sin(Math.PI * (e - 110) / 190); }
+      else landA[i] = null;
+    }
+    if (over && overT0 && t > overT0 + Math.floor(i / N) * 55) col = GREY;
+    drawBlock(col, x, y, cs * sc, 1, rot, white, gem, hp);
+  }
+
+  if (hint && hint.cells && !drag && !over && !won) {
+    const k = clamp01((t - hint.t0) / 400), wave = 0.5 + 0.5 * Math.sin((t - hint.t0) / 230);
+    for (const i of hint.cells) if (grid[i] === null) drawBlock(hint.color, cellCX(i), cellCY(i), cs * (0.86 + 0.08 * wave), k * (0.22 + 0.3 * wave), 0, 0.2 * wave, false);
+  }
+  if (drag && preview) {
+    for (const i of preview.cells) drawBlock(preview.color, cellCX(i), cellCY(i), cs, preview.lines.has(i) ? 0.85 : 0.35, 0, preview.lines.has(i) ? pulse : 0, false);
+  }
+
+  for (let k = flashes.length - 1; k >= 0; k--) {
+    const f = flashes[k], e = (t - f.t0) / 320;
+    if (e >= 1) { flashes.splice(k, 1); continue; }
+    if (e < 0) continue;
+    const grow = cs * 0.25 * easeOutCubic(e);
+    const band = g => f.row !== undefined ? rr(ctx, gx - grow - g, gy + f.row * pitch - grow * 0.5 - g, B - pad * 2 + grow * 2 + g * 2, cs + grow + g * 2, cs * 0.3 + g)
+                                          : rr(ctx, gx + f.col * pitch - grow * 0.5 - g, gy - grow - g, cs + grow + g * 2, B - pad * 2 + grow * 2 + g * 2, cs * 0.3 + g);
+    ctx.globalAlpha = (1 - e) * 0.3; ctx.fillStyle = f.color; band(cs * 0.22); ctx.fill();
+    ctx.globalAlpha = (1 - e) * 0.5; ctx.fillStyle = '#fff'; band(0); ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+  ctx.restore();
+
+  for (let k = parts.length - 1; k >= 0; k--) {
+    const p = parts[k];
+    p.life += dt;
+    if (p.life >= p.max) { parts.splice(k, 1); continue; }
+    p.vy += 900 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.r += p.vr * dt;
+    const co = Math.cos(p.r) * dpr, si = Math.sin(p.r) * dpr;
+    ctx.setTransform(co, si, -si, co, p.x * dpr, p.y * dpr);
+    ctx.globalAlpha = 1 - p.life / p.max;
+    ctx.fillStyle = p.c;
+    ctx.fillRect(-p.s / 2, -p.s / 2, p.s, p.s);
+  }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.globalAlpha = 1;
+
+  for (let i = 0; i < 3; i++) {
+    const p = tray[i];
+    if (!p || (drag && drag.i === i)) continue;
+    const q = trayPos(i, t);
+    if (q.s <= 0.01) continue;
+    const fit = trayFit[i] && !over;
+    const theirs = vs && vs.net && vs.kind === 'shared' && vs.p !== vs.me;
+    const hb = hint && hint.cells && hint.i === i && !over ? 1 + 0.09 * (0.5 + 0.5 * Math.sin((t - hint.t0) / 230)) * clamp01((t - hint.t0) / 400) : 1;
+    drawPiece(p, q.x, q.y, q.s * hb, !fit ? 0.4 : theirs ? 0.6 : 1, !fit);
+  }
+
+  if (drag) {
+    const q = dragPos(t), sh = SH[drag.p.s], size = cs * q.s;
+    const x0 = q.x - (sh.w * pitch - gap) * q.s / 2, y0 = q.y - (sh.h * pitch - gap) * q.s / 2, so = size * 0.8;
+    ctx.globalAlpha = 0.6;
+    for (const [y, x] of sh.cells) ctx.drawImage(shadowSprite, x0 + x * pitch * q.s + size / 2 - so, y0 + y * pitch * q.s + size * 0.68 - so, so * 2, so * 2);
+    ctx.globalAlpha = 1;
+    drawPiece(drag.p, q.x, q.y, q.s, 1, false);
+  }
+
+  for (let k = floats.length - 1; k >= 0; k--) {
+    const f = floats[k], e = (t - f.t0) / f.dur;
+    if (e >= 1) { floats.splice(k, 1); continue; }
+    if (e < 0) continue;
+    const pop = f.big ? easeOutBack(clamp01(e * 4)) : 0.7 + 0.3 * easeOutBack(clamp01(e * 5));
+    const a = e < 0.65 ? 1 : 1 - (e - 0.65) / 0.35;
+    const yy = f.y - (f.big ? 14 : 46) * easeOutCubic(e);
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.translate(f.x, yy); ctx.scale(pop, pop);
+    ctx.font = `700 ${f.size}px ${FONT}`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.lineJoin = 'round'; ctx.lineWidth = f.size * 0.18; ctx.strokeStyle = 'rgba(10,12,40,.75)';
+    ctx.strokeText(f.text, 0, 0);
+    ctx.fillStyle = f.color; ctx.fillText(f.text, 0, 0);
+    ctx.restore();
+  }
+}
+
+/* ---------- wiring ---------- */
+$('goAdventure').addEventListener('click', () => { sfx.unlock(); sfx.tap(); show('map'); });
+$('goEndless').addEventListener('click', () => { sfx.unlock(); sfx.tap(); startEndless(); });
+$('goOnline').addEventListener('click', () => { sfx.unlock(); sfx.tap(); goOnline(); });
+$('goLocal').addEventListener('click', () => { sfx.unlock(); sfx.tap(); chooseLocal(); });
+$('goRanks').addEventListener('click', () => { sfx.unlock(); sfx.tap(); ranksFrom = 'menu'; show('ranks'); });
+$('onRanks').addEventListener('click', () => { sfx.tap(); ranksFrom = 'online'; show('ranks'); });
+$('ranksBack').addEventListener('click', () => { sfx.tap(); ranksFrom === 'online' ? goOnline() : show('menu'); });
+$('tabRating').addEventListener('click', () => setTab('rating'));
+$('tabBest').addEventListener('click', () => setTab('best'));
+$('qm1').addEventListener('click', () => { sfx.tap(); setQmode(1); });
+$('qm2').addEventListener('click', () => { sfx.tap(); setQmode(2); });
+$('findBtn').addEventListener('click', () => { sfx.unlock(); sfx.tap(); startSearch(); });
+$('cancelBtn').addEventListener('click', () => { sfx.tap(); stopSearch(); });
+$('onlineBack').addEventListener('click', () => { sfx.tap(); show('menu'); });
+$('friendBtn').addEventListener('click', () => { sfx.unlock(); sfx.tap(); stopSearch(); goFriend(); });
+$('friendBack').addEventListener('click', () => { sfx.tap(); if (fr.code) { frLeave(); frSay(''); } else goOnline(); });
+$('frCreate').addEventListener('click', () => { sfx.unlock(); sfx.tap(); frOpen(frCodeGen(), true); });
+$('frJoin').addEventListener('click', () => { sfx.unlock(); sfx.tap(); frJoin(); });
+$('frCode').addEventListener('input', e => { const v = e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4); if (v !== e.target.value) e.target.value = v; });
+$('frCode').addEventListener('keydown', e => { if (e.key === 'Enter') { sfx.unlock(); frJoin(); } });
+$('frInvite').addEventListener('click', () => { sfx.tap(); frInvite(); });
+$('frGo').addEventListener('click', () => { sfx.unlock(); sfx.tap(); frStart(); });
+[1, 2].forEach(m => $('frm' + m).addEventListener('click', () => { sfx.tap(); frPick(m, m === fr.set.m ? fr.set.t : m === 2 ? 1 : 0); }));
+[0, 1, 2].forEach(t => $('frt' + t).addEventListener('click', () => { sfx.tap(); frPick(fr.set.m, t); }));
+$('mapBack').addEventListener('click', () => { sfx.tap(); show('menu'); });
+$('gameBack').addEventListener('click', () => {
+  sfx.tap();
+  if (vs && vs.phase !== 'end') {
+    showModal({
+      title: 'Maçtan çıkılsın mı?',
+      body: vs.net && !vs.practice ? '<p>Şimdi çıkarsan bu maçı kaybetmiş sayılırsın.</p>' : '<p>Bu maç kaydedilmeyecek.</p>',
+      primary: ['Devam et', () => {}], secondary: ['Çık', quitDuel]
+    });
+    return;
+  }
+  if (vs) { quitDuel(); return; }
+  show(mode === 'endless' ? 'menu' : 'map');
+});
+$('restart').addEventListener('click', () => { sfx.unlock(); mode === 'endless' ? startEndless() : startLevel(lvl); });
+$('sound').addEventListener('click', () => { setMute(!muted); if (!muted) { sfx.unlock(); sfx.tap(); } });
+setMute(muted);
+let rz = 0;
+const relayout = () => { cancelAnimationFrame(rz); rz = requestAnimationFrame(() => { if (screen === 'game') layout(); }); };
+window.addEventListener('resize', relayout);
+if (window.ResizeObserver) new ResizeObserver(relayout).observe(stage);
+window.addEventListener('pagehide', saveBest);
+document.addEventListener('visibilitychange', () => { if (document.hidden && drag) { preview = null; drop(); } });
+
+function start(){
+  show('menu');
+  requestAnimationFrame(frame);
+  initNet();
+}
+window.claude?.hot?.ready ? window.claude.hot.ready(start) : start();
+})();
+</script>
+</body></html>
