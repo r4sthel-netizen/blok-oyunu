@@ -4,6 +4,8 @@ Telefon için blok bulmaca oyunu. Blokları 8x8 tahtaya yerleştirip satır ve s
 
 Oyna: https://r4sthel-netizen.github.io/blok-oyunu/
 
+Tanıtım (bilgisayar için): https://r4sthel-netizen.github.io/blok-oyunu/tanitim.html
+
 - Android'e kur: https://r4sthel-netizen.github.io/blok-oyunu/android.html
 - iPhone'a kur: https://r4sthel-netizen.github.io/blok-oyunu/iphone.html
 

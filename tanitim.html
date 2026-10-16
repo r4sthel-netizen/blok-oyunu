@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1a2574">
+<meta name="color-scheme" content="dark">
+<title>Blopu · Blok bulmaca oyunu</title>
+<meta name="description" content="Blokları yerleştir, satırları patlat. Ücretsiz blok bulmaca oyunu: 30 bölümlük macera, sonsuz mod, Blok Yağmuru ve aynı telefonda 2 kişilik maç.">
+<meta property="og:title" content="Blopu · Blok bulmaca oyunu">
+<meta property="og:description" content="Blokları yerleştir, satırları patlat. Ücretsiz, telefona kurulur, internetsiz de çalışır.">
+<meta property="og:image" content="https://r4sthel-netizen.github.io/blok-oyunu/og.jpg">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="stylesheet" href="fonts/fonts.css">
+<style>
+:root{color-scheme:only dark; --gold:#ffd84d; --gold-hi:#fff0a0; --gold-lo:#ffab1a; --muted:#b8c4ff; --line:rgba(160,185,255,.18)}
+*{box-sizing:border-box}
+html{background:#0b1040}
+body{margin:0; min-height:100vh; color:#fff; font-family:"Nunito",system-ui,sans-serif; -webkit-font-smoothing:antialiased;
+  background:radial-gradient(90% 70% at 72% 10%, #2f4bb8 0%, #22338f 35%, #1a2574 62%, #0b1040 100%) fixed}
+.wrap{max-width:1180px; margin:0 auto; padding:32px 32px 40px; min-height:100vh; display:grid; grid-template-columns:minmax(0,1fr) auto; gap:56px; align-items:center}
+.hero{display:flex; flex-direction:column; gap:22px}
+.brand{display:flex; align-items:center; gap:18px}
+.brand img{width:76px; height:76px; border-radius:18px; box-shadow:0 10px 26px rgba(0,0,30,.5)}
+h1{margin:0; font:400 64px/1 "Lilita One","Nunito",sans-serif; color:var(--gold); text-shadow:0 4px 0 #c8650a, 0 10px 22px rgba(0,0,40,.5)}
+.tag{margin:0; font-size:22px; font-weight:800; color:#fff; max-width:34ch; line-height:1.35}
+.tag span{color:var(--muted); font-weight:700}
+.modes{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:0; padding:0; list-style:none}
+.modes li{display:flex; gap:12px; align-items:flex-start; padding:14px 16px; border-radius:18px; background:rgba(255,255,255,.07); box-shadow:inset 0 0 0 1.5px var(--line)}
+.modes i{flex:none; width:40px; height:40px; border-radius:12px; display:grid; place-items:center; background:var(--c); box-shadow:inset 0 -3px 0 rgba(0,0,0,.25), inset 0 2px 0 rgba(255,255,255,.35)}
+.modes i svg{width:22px; height:22px; color:#fff}
+.modes b{display:block; font:400 20px/1.15 "Lilita One","Nunito",sans-serif; letter-spacing:.01em}
+.modes small{display:block; color:var(--muted); font-size:14px; font-weight:700; line-height:1.35; margin-top:3px}
+.facts{display:flex; flex-wrap:wrap; gap:8px; margin:0; padding:0; list-style:none}
+.facts li{padding:7px 12px; border-radius:999px; background:rgba(255,255,255,.08); font-weight:800; font-size:14px; color:#e3e9ff}
+.get{display:flex; gap:16px; flex-wrap:wrap}
+.qr{display:flex; align-items:center; gap:14px; padding:12px 16px 12px 12px; border-radius:20px; background:rgba(255,255,255,.07); box-shadow:inset 0 0 0 1.5px var(--line); text-decoration:none; color:#fff}
+.qr img{width:104px; height:104px; border-radius:12px; display:block}
+.qr b{display:block; font:400 20px "Lilita One","Nunito",sans-serif}
+.qr small{display:block; color:var(--muted); font-weight:700; font-size:14px; max-width:16ch; line-height:1.3; margin-top:2px}
+.qr:hover{background:rgba(255,255,255,.11)}
+.play{display:inline-flex; align-items:center; gap:10px; align-self:flex-start; padding:0 26px; min-height:56px; border-radius:18px; text-decoration:none;
+  font:400 22px "Lilita One","Nunito",sans-serif; color:#5a2a00; background:linear-gradient(180deg, var(--gold-hi), var(--gold) 40%, var(--gold-lo));
+  box-shadow:inset 0 0 0 2px rgba(255,248,200,.85), inset 0 -4px 0 rgba(200,101,10,.55), 0 4px 0 #c8650a, 0 10px 22px rgba(0,0,40,.4)}
+.play:active{transform:translateY(2px)}
+.play svg{width:20px; height:20px}
+.device{display:flex; flex-direction:column; align-items:center; gap:12px}
+.phone{height:min(820px, calc(100vh - 110px)); min-height:560px; aspect-ratio:390/812; padding:12px; border-radius:46px; background:linear-gradient(160deg, #3a4378, #12163a 60%);
+  box-shadow:inset 0 0 0 2px rgba(255,255,255,.14), 0 30px 70px rgba(0,0,20,.6), 0 0 0 1px rgba(0,0,0,.6)}
+.phone iframe{width:100%; height:100%; border:0; border-radius:34px; display:block; background:#1a2574}
+.hint{margin:0; color:var(--muted); font-weight:700; font-size:14px; text-align:center}
+@media (max-height:820px) and (min-width:981px){
+  .wrap{padding-block:20px; gap:44px}
+  .hero{gap:16px}
+  h1{font-size:54px}
+  .brand img{width:64px; height:64px}
+  .tag{font-size:20px}
+  .modes li{padding:11px 14px}
+  .qr img{width:84px; height:84px}
+  .play{min-height:50px}
+  .phone{height:calc(100vh - 80px); min-height:520px; aspect-ratio:9/18}
+}
+@media (max-width:980px){
+  .wrap{grid-template-columns:1fr; gap:36px; padding:28px 18px 36px}
+  .device{order:2}
+  .phone{height:min(760px, 92vh); min-height:0}
+}
+@media (max-width:560px){
+  h1{font-size:50px}
+  .modes{grid-template-columns:1fr}
+  .phone{display:none}
+  .hint{display:none}
+}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <section class="hero">
+    <div class="brand"><img src="icons/icon-192.png" alt=""><h1>Blopu</h1></div>
+    <p class="tag">Blokları tahtaya yerleştir, satırları ve sütunları patlat. <span>Ücretsiz, telefona kurulur, internetsiz de çalışır.</span></p>
+    <ul class="modes">
+      <li><i style="--c:#f0a228"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"/><path d="M9 4v14M15 6v14"/></svg></i><div><b>Macera</b><small>30 bölüm, yıldızlar ve Yıldız Tozu yardımları</small></div></li>
+      <li><i style="--c:#9a62ea"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 12c-2-2.7-3.6-4-5.5-4a4 4 0 0 0 0 8c1.9 0 3.5-1.3 5.5-4zm0 0c2 2.7 3.6 4 5.5 4a4 4 0 0 0 0-8c-1.9 0-3.5 1.3-5.5 4z"/></svg></i><div><b>Sonsuz</b><small>Kolay, orta ve zor; en yüksek skoru yap</small></div></li>
+      <li><i style="--c:#e9566f"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="3" width="5" height="5" rx="1.2"/><rect x="9.5" y="3" width="5" height="5" rx="1.2"/><rect x="15" y="3" width="5" height="5" rx="1.2"/><rect x="9.5" y="8.5" width="5" height="5" rx="1.2"/><path d="M12 15v5m-3-2.5L12 20l3-2.5" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></i><div><b>Blok Yağmuru</b><small>Düşen blokları çevir, satırı tamamla</small></div></li>
+      <li><i style="--c:#3cbf7c"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="8" r="3.4"/><circle cx="16.5" cy="9.5" r="2.7"/><path d="M2.5 19c.6-3.6 3.2-5.6 6.5-5.6s5.9 2 6.5 5.6z"/><path d="M14.6 13.8c.6-.2 1.2-.3 1.9-.3 2.6 0 4.6 1.6 5.1 4.6h-5.4c-.3-1.7-.8-3.1-1.6-4.3z"/></svg></i><div><b>2 kişi</b><small>Aynı telefonda karşılıklı oyna</small></div></li>
+    </ul>
+    <ul class="facts"><li>6 dil</li><li>6 renk teması, koyu ve açık</li><li>İnternetsiz çalışır</li><li>Hesap gerekmez</li></ul>
+    <div class="get">
+      <a class="qr" href="android.html"><img src="qr-android.svg" alt="Android kurulum sayfası için QR kod"><div><b>Android</b><small>Kamerayla okut, telefona yükle</small></div></a>
+      <a class="qr" href="iphone.html"><img src="qr-iphone.svg" alt="iPhone kurulum sayfası için QR kod"><div><b>iPhone</b><small>Kamerayla okut, ana ekrana ekle</small></div></a>
+    </div>
+    <a class="play" href="./" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5z"/></svg>Tam ekran oyna</a>
+  </section>
+  <section class="device" aria-label="Oyunu burada dene">
+    <div class="phone"><iframe src="./" title="Blopu oyunu" loading="eager" allow="fullscreen"></iframe></div>
+    <p class="hint">Burada fareyle oynayabilirsin: blokları sürükleyip tahtaya bırak.</p>
+  </section>
+</main>
+</body>
+</html>
