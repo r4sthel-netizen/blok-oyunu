@@ -25,7 +25,7 @@
   <h1>Blopu</h1>
   <p class="sub">Blokları yerleştir, satırları patlat.</p>
 
-  <button class="btn" id="install" hidden>Telefona yükle</button>
+  <button class="btn" id="install">Telefona yükle</button>
   <div class="note ok" id="done" hidden>Blopu yüklendi! Ana ekrandaki <b>Blopu</b> simgesinden aç.</div>
   <div class="note" id="inapp" hidden>Bu sayfa bir uygulamanın içinde açıldı. Sağ üstteki <span class="k">⋮</span> menüsünden <b>Chrome'da aç</b>'a dokun, sonra buradaki adımları uygula.</div>
 
@@ -39,6 +39,21 @@
   </div>
 
   <a class="btn alt" href="./">Yüklemeden hemen oyna</a>
+
+  <div class="guide top" id="guide" hidden>
+    <div class="gsheet" role="dialog" aria-labelledby="gT">
+      <button class="gx" id="gClose" aria-label="Kapat">✕</button>
+      <img class="gic" src="icons/icon-192.png" alt="">
+      <h2 id="gT">Blopu'yu yükle</h2>
+      <p class="gsub">Tarayıcının menüsünden 3 dokunuşta biter:</p>
+      <ol>
+        <li><span><span id="gWhere">Sağ üstteki</span> <span class="k" id="gMenu">⋮</span> menüsüne dokun.<span id="gChrome"> <b>Chrome'da aç</b> çıkarsa önce ona dokun.</span></span></li>
+        <li><span><b>Uygulamayı yükle</b> ya da <b>Ana ekrana ekle</b>'ye dokun.</span></li>
+        <li><span><b>Yükle</b>'ye dokun. Blopu ana ekranında!</span></li>
+      </ol>
+    </div>
+    <div class="garrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v17M5 13l7 7 7-7"/></svg></div>
+  </div>
   <p class="small">Kurulunca tam ekran açılır ve internetsiz de çalışır. iPhone kullanan arkadaşın için: <a href="iphone.html">iPhone sayfası</a></p>
 </main>
 <script>
@@ -52,10 +67,14 @@
   let ev = null;
   window.addEventListener('beforeinstallprompt', e => {
     e.preventDefault(); ev = e;
-    $('install').hidden = false; $('inapp').hidden = true; $('stepsH').textContent = 'Düğme çıkmazsa';
+    $('install').hidden = false; $('inapp').hidden = true;
   });
+  const g = $('guide');
+  if (/SamsungBrowser/.test(ua)) { g.classList.remove('top'); g.classList.add('br'); $('gWhere').textContent = 'Alttaki'; $('gMenu').textContent = '≡'; $('gChrome').hidden = true; }   // Samsung Internet keeps its menu at the bottom right
+  $('gClose').addEventListener('click', () => { g.hidden = true; });
+  g.addEventListener('click', e => { if (e.target === g) g.hidden = true; });
   $('install').addEventListener('click', async () => {
-    if (!ev) return;
+    if (!ev) { g.hidden = false; return; }   // no install prompt from this browser: show the steps with an arrow at its menu
     ev.prompt();
     const r = await ev.userChoice.catch(() => null);
     if (r && r.outcome === 'accepted') { $('install').hidden = true; $('done').hidden = false; }

@@ -42,3 +42,4 @@ ol li::before{content:counter(s);flex:none;width:30px;height:30px;border-radius:
 @keyframes gbob{50%{transform:translateY(10px)}}
 @keyframes gbobup{0%,100%{transform:rotate(180deg)}50%{transform:rotate(180deg) translateY(10px)}}
 @keyframes gin{from{transform:translateY(30px);opacity:0}}
+.guide.br .garrow{left:auto;right:calc(14px + env(safe-area-inset-right));margin:0}
