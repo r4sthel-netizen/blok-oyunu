@@ -6,6 +6,7 @@
 <title>Blopu</title>
 <meta name="description" content="Blopu: blokları yerleştir, satırları patlat. Ücretsiz blok bulmaca oyunu.">
 <meta name="theme-color" content="#1a2574">
+<meta name="color-scheme" content="dark light">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Blopu">
@@ -39,6 +40,9 @@ html{background-color:var(--bg,#1a2574)}
   color-scheme:dark;
 }
 :root.light{color-scheme:light; --gold-text:#b47300}
+/* the game draws its own dark and light themes: saying so keeps phone browsers (Samsung Internet dark mode, Chrome auto dark) from darkening it again */
+@media (prefers-color-scheme:dark){:root:not(.light){color-scheme:dark}}
+@media (prefers-color-scheme:light){:root.light{color-scheme:light}}
 :root.light .segb.on{background:rgba(255,255,255,.82)}
 html,body{height:100%}
 [hidden]{display:none!important}
