@@ -2071,7 +2071,7 @@ function renderOnlineNow(){
 }
 function renderOnlineStatus(){
   const st = $('onStatus');
-  const ok = !!net.room, busy = searching || pairing;
+  const ok = !!net.room || APP_BUILD, busy = searching || pairing;   // app copy: the search runs as a preview with no one to match
   $('findBtn').hidden = !ok || busy;
   $('cancelBtn').hidden = !searching;
   $('friendBtn').hidden = busy;
@@ -2090,6 +2090,7 @@ function renderOnlineStatus(){
     $('srchSub').textContent = same ? tt('{0} kişi daha arıyor, eşleşiyorsunuz…', same) : tt('{0} için rakip aranıyor', QNAME[qmode]);
     $('srch').classList.toggle('found', !!same);
     st.hidden = !!same;
+    if (APP_BUILD) { st.hidden = false; st.textContent = tt('Çevrim içi maçlar çok yakında! Şimdilik Macera, Sonsuz, Blok Yağmuru ve 2 kişi modlarını oynayabilirsin.'); return; }
     st.textContent = other ? tt('{0} kişi başka bir modda arıyor. Aramayı durdurup o moda geçebilirsin.', other) : tt('Şu an bu modda arayan başka kimse yok. Arkadaşına haber ver, o da aynı modda "Rakip bul"a bassın.');
     return;
   }
@@ -2105,13 +2106,13 @@ async function goOnline(){
   if (screen === 'online') renderOnline();
 }
 function startSearch(){
-  if (!net.room || searching) return;
+  if ((!net.room && !APP_BUILD) || searching) return;
   searching = true; pairing = false; searchSince = Date.now();
-  net.room.presence({ on: 1, q: qmode, since: searchSince, r: myStats.rating, uid: net.id }).catch(() => {});
+  if (net.room) net.room.presence({ on: 1, q: qmode, since: searchSince, r: myStats.rating, uid: net.id }).catch(() => {});
   clearInterval(searchTick);
   searchTick = setInterval(() => { if (screen === 'online') renderOnlineStatus(); }, 1000);
   renderOnline();
-  tryPair(net.room.peers());
+  if (net.room) tryPair(net.room.peers());
 }
 function stopSearch(){
   if (!searching && !pairing) return;
@@ -2253,6 +2254,7 @@ async function frOpen(code, host){
   const r = await ensureRoom();
   netChecked = true;
   if (fr.code !== code) return;
+  if (!r && APP_BUILD && host) { frSay(tt('Arkadaşla oyna çok yakında geliyor!')); return; }   // app copy: the room and its code show as a preview
   if (!r) { fr.code = ''; frSay(tt(APP_BUILD ? 'Arkadaşla oyna çok yakında geliyor!' : 'Arkadaşla oyna bu görünümde açılamadı. Oyunu claude.ai hesabınla açtığından emin ol.')); return; }
   let m;
   try { m = await r.join('f-' + code.toLowerCase()); } catch (e) { if (fr.code === code) { fr.code = ''; frSay(tt('Odaya bağlanılamadı. Tekrar dene.')); } return; }
@@ -2341,6 +2343,7 @@ function frToLobby(msg){
   frSay(msg);
 }
 async function frInvite(){
+  if (APP_BUILD) { frSay(tt('Arkadaşla oyna çok yakında geliyor!')); return; }
   const text = `${tt('Blopu\'da benimle oyna!')}\n1. ${tt('Oyunu aç:')} ${GAME_URL}\n2. ${tt('Çevrim İçi')} > ${tt('Arkadaşla oyna')}\n3. ${tt('Oda kodu')}: ${fr.code}`;
   try { if (navigator.share) { await navigator.share({ text }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
   let ok = false;
