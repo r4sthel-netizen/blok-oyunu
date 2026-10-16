@@ -1,19 +1,21 @@
-# Blok Patlat
+# Blopu
 
-Telefon için tek dosyalık bir blok bulmaca oyunu. Blokları 8x8 tahtaya yerleştirip satır ve sütunları patlatıyorsun.
+Telefon için blok bulmaca oyunu. Blokları 8x8 tahtaya yerleştirip satır ve sütunları patlatıyorsun.
+
+Oyna: https://r4sthel-netizen.github.io/blok-oyunu/
 
 ## Modlar
 
-- **Macera:** 30 bölüm, buzlu bölümler dahil.
-- **Sonsuz:** yer kalmayana kadar en yüksek skoru yap.
-- **Online:** rastgele rakiple skor yarışı ya da ortak tahta, rank ligleri ve sıralama.
-- **Arkadaşla oyna:** 4 harflik oda koduyla davet, 2 kişilik özel oda.
-- **2 kişi:** aynı telefonda klasik mod ve ortak tahta.
+- **Macera:** 30 bölüm, Yıldız Tozu ile çekiç, karıştırma ve devam et yardımları.
+- **Sonsuz:** kolay, orta ve zor seviyede en yüksek skoru yap.
+- **Blok Yağmuru:** yukarıdan düşen bloklarla satır tamamla.
+- **2 kişi:** aynı telefonda karşılıklı mod ve ortak tahta.
 
-## Çalıştırma
+## Telefona kurma
 
-`index.html` dosyasını tarayıcıda açman yeterli, kurulum gerekmiyor.
+- **Android (Chrome):** linki aç, sağ üstteki ⋮ menüsünden "Ana ekrana ekle" ya da "Uygulamayı yükle".
+- **iPhone (Safari):** linki Safari'de aç, alttaki Paylaş düğmesi, "Ana Ekrana Ekle".
 
-Online modlar, arkadaşla oynama ve sıralama claude.ai'nin sağladığı oda ve veri özelliklerini kullanıyor. Bu yüzden şimdilik sadece claude.ai'deki yayınlanmış sürümde çalışıyorlar: https://claude.ai/artifact/4v9t6UrPhoV5r8aH24NsER
+Kurulunca simgesiyle tam ekran açılır ve internetsiz de çalışır.
 
-Dosyayı doğrudan açtığında Macera, Sonsuz ve 2 kişi modları çalışır.
+Çevrim içi maçlar ve sıralama claude.ai hesabı gerektirdiği için yalnızca claude.ai'deki sürümde var: https://claude.ai/artifact/4v9t6UrPhoV5r8aH24NsER
