@@ -18,11 +18,14 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="preload" href="fonts/i7dPIFZ9Zz-WBtRtedDbYEF8RQ.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="fonts/fonts.css">
-<script>window.BLOPU_APP = 1;   // this copy runs without a claude.ai account: online parts show "coming soon"</script>
+<script>window.BLOPU_APP = 1;   // this copy runs without a claude.ai account: online parts show "coming soon"
+if (navigator.standalone) document.documentElement.setAttribute('data-ios-app', '');   // installed on an iPhone home screen</script>
 <style>
 html{background-color:var(--bg,#1a2574)}
-/* full-screen app: keep content clear of the notch and the home bar */
-.screen{padding-top:max(10px, env(safe-area-inset-top, 0px)); padding-bottom:max(10px, env(safe-area-inset-bottom, 0px))}
+/* full-screen app: keep content clear of the notch and the home bar (body-qualified so it beats the game's own .screen padding) */
+body .screen{padding-top:max(10px, env(safe-area-inset-top, 0px)); padding-bottom:max(10px, env(safe-area-inset-bottom, 0px))}
+/* installed iPhone app: 100% stops one status bar short of the bottom, the full screen is 100vh */
+html[data-ios-app], html[data-ios-app] body{height:100vh}
 </style>
 </head>
 <body>
@@ -1295,7 +1298,7 @@ function buildSprites(){
   poly([[2,9],[9,9],[12,21]], '#3fc7e6');
   poly([[15,9],[22,9],[12,21]], '#26a9cc');
   poly([[9,9],[15,9],[12,21]], '#5fe3f7');
-  gemSprite = c;
+  gemSprite = c; layerKey = '';
 }
 const BSH = 56;   // room around the board image for its baked drop shadow (a CSS filter on the stage would re-blur every frame)
 function buildBoard(){
@@ -1315,7 +1318,25 @@ function buildBoard(){
     x.fillStyle = thc('rgba(120,150,255,.10)'); x.fillRect(X, Y + cs - Math.max(1, cs * 0.05), cs, Math.max(1, cs * 0.05));
     x.restore();
   }
-  boardImg = c;
+  boardImg = c; layerKey = '';
+}
+let layerImg = null, layerKey = '';
+const dynB = [];
+function buildLayer(key){   // board image plus every resting block, in the board image's own pixel grid
+  const s = boardImg.width;
+  if (!layerImg || layerImg.width !== s) { layerImg = document.createElement('canvas'); layerImg.width = layerImg.height = s; }
+  const x = layerImg.getContext('2d'), k = s / (B + BSH * 2), cells = key.split(',');
+  x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, s, s); x.drawImage(boardImg, 0, 0);
+  x.setTransform(k, 0, 0, k, (BSH - bx) * k, (BSH - by) * k);
+  for (let i = 0; i < N * N; i++) {
+    const c = cells[i]; if (!c || c === '~') continue;
+    const col = parseInt(c, 10), gem = c.includes('*'), hp = c.includes('!') ? 2 : 1;
+    const spr = col === ICE ? iceSprites[hp > 1 ? 1 : 0] : sprites[col], X = gx + (i % N) * pitch, Y = gy + Math.floor(i / N) * pitch;
+    if (!spr) continue;
+    x.drawImage(spr, X, Y, cs, cs);
+    if (gem) { const g = cs * 0.74; x.drawImage(gemSprite, X + (cs - g) / 2, Y + (cs - g) / 2 - cs * 0.03, g, g); }
+  }
+  layerKey = key;
 }
 const cellCX = i => gx + (i % N) * pitch + cs / 2;
 const cellCY = i => gy + Math.floor(i / N) * pitch + cs / 2;
@@ -1627,7 +1648,7 @@ function dragPos(t){
 }
 
 /* ---------- input ---------- */
-function pt(e){ const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+function pt(e){ const r = e.type === 'pointermove' && cvRect || (cvRect = cv.getBoundingClientRect()); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
 const spPt = (e, i) => { const q = pt(e); return i ? { x: W - q.x, y: H - q.y } : q; };   // the top player's touches, in their own turned frame
 cv.addEventListener('pointerdown', e => {
   sfx.unlock();
@@ -1648,17 +1669,20 @@ function grab(e, { x, y }){
   const t = now(), cur = trayPos(i, t);
   if (cur.s <= 0.01) cur.s = slotHome(i).s;
   slotA[i] = null;
-  drag = { i, p, id: e.pointerId, x, y, t0: t, fx: cur.x, fy: cur.y, fs: cur.s,
+  drag = { i, p, id: e.pointerId, x, y, ax: x, ay: y, k: e.pointerType === 'mouse' ? 1 : DRAG_K, t0: t, fx: cur.x, fy: cur.y, fs: cur.s,
            lift: e.pointerType === 'mouse' ? 0 : Math.max(cs * 1.9, 64) };
   sfx.pick(); buzz(6);
   hint = null; idleSince = t;
   updatePreview();
 }
+const DRAG_K = 1.2;
+function dragTo(q){ drag.x = Math.max(0, Math.min(W, drag.ax + (q.x - drag.ax) * drag.k)); drag.y = Math.max(0, Math.min(H + drag.lift, drag.ay + (q.y - drag.ay) * drag.k)); }
+let cvRect = null;   // canvas position, read once per drag instead of on every finger move
 cv.addEventListener('pointermove', e => {
-  if (isSplit()) { const i = spOf(e); if (i >= 0) asP(i, () => { kick(); const q = spPt(e, i); drag.x = q.x; drag.y = q.y; updatePreview(); }); return; }
+  if (isSplit()) { const i = spOf(e); if (i >= 0) asP(i, () => { kick(); dragTo(spPt(e, i)); updatePreview(); }); return; }
   if (!drag || e.pointerId !== drag.id) return;
   kick();
-  const q = pt(e); drag.x = q.x; drag.y = q.y;
+  dragTo(pt(e));
   updatePreview();
 });
 cv.addEventListener('pointerup', e => {
@@ -3578,19 +3602,21 @@ function drawScene(t, dt){   // one board: blocks, effects, tray, dragged piece 
   shake *= Math.exp(-dt * 11);
   const sx = shake > 0.3 ? (Math.random() - 0.5) * 2 * shake : 0, sy = shake > 0.3 ? (Math.random() - 0.5) * 2 * shake : 0;
   ctx.save(); ctx.translate(sx, sy);
-  ctx.drawImage(boardImg, bx - BSH, by - BSH, B + BSH * 2, B + BSH * 2);
+  const useLayer = !isSplit();   // one board: resting blocks come from a cached image, only moving ones are drawn each frame
+  if (!useLayer) ctx.drawImage(boardImg, bx - BSH, by - BSH, B + BSH * 2, B + BSH * 2);
+  let key = ''; dynB.length = 0;
 
   const pulse = 0.18 + 0.12 * Math.sin(t / 95);
   for (let i = 0; i < N * N; i++) {
     const ca = clearA[i];
     let col = grid[i], gem = gems[i];
-    if (col === null && !ca) continue;
+    if (col === null && !ca) { key += ','; continue; }
     let x = cellCX(i), y = cellCY(i), sc = 1, rot = 0, white = 0;
     let hp = iceHp[i];
     if (ca) {
       col = ca.color; gem = ca.gem; hp = 1;
       const k = (t - ca.t0) / 260;
-      if (k >= 1) { clearA[i] = null; continue; }
+      if (k >= 1) { clearA[i] = null; key += ','; continue; }
       if (k > 0) {
         if (!ca.spawned) { ca.spawned = true; spawn(i, ca.fx, ca.color === ICE ? 9 : 4 + Math.min(combo, 4)); if (ca.gem) flyGem(i); if (ca.color === ICE) sfx.shatter(); }
         sc = 1 - easeInCubic(k); rot = k * 0.9; white = 0.4 * (1 - k);
@@ -3617,7 +3643,14 @@ function drawScene(t, dt){   // one board: blocks, effects, tray, dragged piece 
       else landA[i] = null;
     }
     if (over && overT0 && t > overT0 + Math.floor(i / N) * 55) col = GREY;
-    drawBlock(col, x, y, cs * sc, 1, rot, white, gem, hp);
+    if (useLayer && sc === 1 && !rot && !(white > 0) && x === cellCX(i) && y === cellCY(i)) { key += col + (gem ? '*' : '') + (hp > 1 ? '!' : '') + ','; continue; }
+    key += '~,';
+    if (useLayer) dynB.push(col, x, y, cs * sc, rot, white, gem, hp); else drawBlock(col, x, y, cs * sc, 1, rot, white, gem, hp);
+  }
+  if (useLayer) {
+    if (key !== layerKey || !layerImg) buildLayer(key);
+    ctx.drawImage(layerImg, bx - BSH, by - BSH, B + BSH * 2, B + BSH * 2);
+    for (let k = 0; k < dynB.length; k += 8) drawBlock(dynB[k], dynB[k + 1], dynB[k + 2], dynB[k + 3], 1, dynB[k + 4], dynB[k + 5], dynB[k + 6], dynB[k + 7]);
   }
 
   if (hint && hint.cells && !drag && !over && !won) {
