@@ -23,4 +23,4 @@ Tanıtım (bilgisayar için): https://r4sthel-netizen.github.io/blok-oyunu/tanit
 
 Kurulunca simgesiyle tam ekran açılır ve internetsiz de çalışır.
 
-Çevrim içi maçlar ve sıralama claude.ai hesabı gerektirdiği için yalnızca claude.ai'deki sürümde var: https://claude.ai/artifact/4v9t6UrPhoV5r8aH24NsER
+Çevrim içi bölümü bu sürümde görünür ama maçlar ve sıralama şimdilik yalnızca claude.ai'deki sürümde çalışıyor: https://claude.ai/artifact/4v9t6UrPhoV5r8aH24NsER
