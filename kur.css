@@ -25,5 +25,5 @@ ol li::before{content:counter(s);flex:none;width:30px;height:30px;border-radius:
 .small{color:#b8c4ff;font-size:14px;font-weight:600;margin:0}
 .small a{color:#fff}
 [hidden]{display:none!important}
-:root{color-scheme:dark}
-@media (prefers-color-scheme:dark){:root{color-scheme:dark}}
+:root{color-scheme:only dark}
+@media (prefers-color-scheme:dark){:root{color-scheme:only dark}}

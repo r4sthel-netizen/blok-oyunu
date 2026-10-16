@@ -37,12 +37,12 @@ html{background-color:var(--bg,#1a2574)}
   --well:var(--tc7,rgba(8,14,70,.5)); --rim:var(--tc8,rgba(150,175,255,.32)); --gold-hi:#fff0a0; --gold-lo:#ffab1a; --gold-edge:#c8650a;
   --font-display:"Lilita One","TRFix","Trebuchet MS",system-ui,sans-serif;
   --font-body:"Nunito",system-ui,sans-serif;
-  color-scheme:dark;
+  color-scheme:only dark;   /* 'only': the browser must never recolour the page itself */
 }
-:root.light{color-scheme:light; --gold-text:#b47300}
+:root.light{color-scheme:only light; --gold-text:#b47300}
 /* the game draws its own dark and light themes: saying so keeps phone browsers (Samsung Internet dark mode, Chrome auto dark) from darkening it again */
-@media (prefers-color-scheme:dark){:root:not(.light){color-scheme:dark}}
-@media (prefers-color-scheme:light){:root.light{color-scheme:light}}
+@media (prefers-color-scheme:dark){:root:not(.light){color-scheme:only dark}}
+@media (prefers-color-scheme:light){:root.light{color-scheme:only light}}
 :root.light .segb.on{background:rgba(255,255,255,.82)}
 html,body{height:100%}
 [hidden]{display:none!important}
