@@ -18,7 +18,7 @@
 <link rel="preload" href="fonts/i7dPIFZ9Zz-WBtRtedDbYEF8RQ.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="fonts/fonts.css">
 <style>
-html,body{background-color:#1a2574}
+html{background-color:var(--bg,#1a2574)}
 /* this copy runs on its own (no claude.ai account): online play and the leaderboard are hidden */
 #goOnline,#goRanks{display:none!important}
 #goLocal{grid-column:1/-1}
@@ -386,6 +386,7 @@ button{font-family:inherit}
 .card{background:linear-gradient(180deg, var(--tc33,#3656e0) 0%, var(--tc34,#2337b4) 55%, var(--tc35,#1b2a94) 100%); box-shadow:inset 0 0 0 2px var(--tc36,rgba(170,195,255,.6)), 0 0 0 4px var(--tc37,#0d1460), 0 0 0 6px rgba(255,216,77,.55), 0 24px 60px rgba(0,0,30,.6); padding-top:24px}
 .card h2{font-weight:400; font-size:30px; color:#ffe066; -webkit-text-stroke:1px #9a4400; text-shadow:0 3px 0 #b55400, 0 6px 10px rgba(0,0,30,.4)}
 .card p{color:var(--tc38,#d3dcff)}
+:root.light .card{background:linear-gradient(180deg, var(--tc14) 0%, var(--tc1) 100%)}   /* light themes: a pale card, so the dark text on it stays readable in every colour */
 .card .label{color:var(--tc5,#b8c4ff)}
 .card .big{text-shadow:0 4px 0 var(--tc28,#16206e)}
 .vsov{background:radial-gradient(90% 60% at 50% 50%, var(--tc39,#3d60e8) 0%, var(--tc22,#1d2a8a) 55%, var(--tc40,#0a0f45) 100%)}
@@ -1294,12 +1295,12 @@ function buildSprites(){
   poly([[9,9],[15,9],[12,21]], '#5fe3f7');
   gemSprite = c;
 }
-const BSH = 30;   // room around the board image for its baked drop shadow (a CSS filter on the stage would re-blur every frame)
+const BSH = 56;   // room around the board image for its baked drop shadow (a CSS filter on the stage would re-blur every frame)
 function buildBoard(){
   const s = Math.ceil((B + BSH * 2) * dpr);
   const c = document.createElement('canvas'); c.width = c.height = s;
   const x = c.getContext('2d'); x.scale(dpr, dpr); x.translate(BSH, BSH);
-  x.save(); x.shadowColor = 'rgba(0,0,40,.35)'; x.shadowBlur = 24 * dpr; x.shadowOffsetY = 10 * dpr;
+  x.save(); x.shadowColor = themeMode === 'light' ? 'rgba(0,0,40,.22)' : 'rgba(0,0,40,.35)'; x.shadowBlur = 24 * dpr; x.shadowOffsetY = 10 * dpr;   // shadow units are device pixels: blur + offset reach ~45px, inside BSH
   rr(x, 0, 0, B, B, B * 0.04); x.fillStyle = C_BOARD; x.fill(); x.restore();
   rr(x, 0, 0, B, B, B * 0.04); x.fillStyle = C_BOARD; x.fill();
   x.strokeStyle = C_RIM; x.lineWidth = 2.5; rr(x, 1.25, 1.25, B - 2.5, B - 2.5, B * 0.04); x.stroke();
@@ -1308,7 +1309,7 @@ function buildBoard(){
     const X = pad + (i % N) * pitch, Y = pad + Math.floor(i / N) * pitch;
     rr(x, X, Y, cs, cs, cs * 0.17); x.fillStyle = C_CELL; x.fill();
     x.save(); rr(x, X, Y, cs, cs, cs * 0.17); x.clip();
-    x.fillStyle = 'rgba(0,0,30,.35)'; x.fillRect(X, Y, cs, Math.max(2, cs * 0.08));
+    x.fillStyle = themeMode === 'light' ? 'rgba(0,0,30,.12)' : 'rgba(0,0,30,.35)'; x.fillRect(X, Y, cs, Math.max(2, cs * 0.08));
     x.fillStyle = thc('rgba(120,150,255,.10)'); x.fillRect(X, Y + cs - Math.max(1, cs * 0.05), cs, Math.max(1, cs * 0.05));
     x.restore();
   }
