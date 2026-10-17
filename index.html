@@ -109,7 +109,7 @@ button{font-family:inherit}
 .pav{display:block; width:34px; height:34px; flex:none}
 .pav svg,.avp svg{display:block; width:100%; height:100%}
 .pnm{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-.pf{max-height:min(60vh, 520px); overflow-y:auto; margin:0 -6px; padding:2px 6px; display:flex; flex-direction:column; gap:12px; text-align:start}
+.pf{max-height:min(60vh, 520px); overflow-y:auto; overflow-x:hidden; touch-action:pan-y; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; margin:0 -6px; padding:2px 6px; display:flex; flex-direction:column; gap:12px; text-align:start}
 .pf .lbl{font:800 13px var(--font-body); opacity:.75; margin:0 0 -6px}
 .pf input,.pf select{width:100%; box-sizing:border-box; border:0; border-radius:12px; padding:11px 12px; font:800 16px var(--font-body); color:var(--fg); background:rgba(0,0,0,.22); box-shadow:inset 0 0 0 2px rgba(255,255,255,.12)}
 .pf input:focus,.pf select:focus{outline:none; box-shadow:inset 0 0 0 2px var(--gold)}
@@ -122,7 +122,7 @@ button{font-family:inherit}
 .fl{margin-inline-end:8px}
 .ccl{margin-top:-6px; border-radius:14px; padding:8px; background:rgba(0,0,0,.24); box-shadow:inset 0 0 0 2px rgba(255,255,255,.1); display:flex; flex-direction:column; gap:6px}
 .ccl[hidden]{display:none}
-.pf .ccl input{padding:9px 12px; font-size:15px; background:rgba(255,255,255,.08)}
+.pf .ccl input{padding:9px 12px; font-size:16px; background:rgba(255,255,255,.08)}
 .pf input::placeholder{color:var(--fg); opacity:.45}
 .cci{position:relative; max-height:232px; overflow-y:auto; overscroll-behavior:contain; display:flex; flex-direction:column; gap:2px; padding:2px}
 .cci button{display:block; flex:none; width:100%; border:0; border-radius:10px; padding:9px 10px; cursor:pointer; text-align:start; font:800 15px var(--font-body); color:var(--fg); background:transparent; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
@@ -130,10 +130,13 @@ button{font-family:inherit}
 .cci button:hover{background:rgba(255,255,255,.08)}
 .cci button.on{background:rgba(255,216,77,.16); box-shadow:inset 0 0 0 2px var(--gold)}
 .pf .err{color:#ffb4b4; font:800 13px var(--font-body); min-height:0; margin:-6px 0 0}
-.avs{display:grid; grid-template-columns:repeat(4, 1fr); gap:8px}
+.avs{display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:8px}
+.avp{min-width:0}
+.pf > *{min-width:0; max-width:100%}
+body:has(#modal:not([hidden])) .floaters i{animation-play-state:paused}   /* nothing moves behind an open window: smoother scrolling on weak phones */
 .avp{border:0; padding:4px; border-radius:14px; background:rgba(255,255,255,.07); cursor:pointer; aspect-ratio:1}
 .avp.on{box-shadow:inset 0 0 0 3px var(--gold); background:rgba(255,216,77,.14)}
-.pst{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+.pst{display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:8px}
 .pst div{border-radius:12px; padding:8px 10px; background:rgba(0,0,0,.18)}
 .pst b{display:block; font:400 20px var(--font-display); color:var(--gold-text,var(--gold))}
 .pst span{font:800 12px var(--font-body); opacity:.75}
