@@ -3525,12 +3525,13 @@ async function loadRanks(){
 }
 
 /* ---------- Kum Fırtınası: a falling block turns into sand where it lands; one colour of sand reaching from the left wall to the right wall bursts ---------- */
-const SDW = 6, SDH = 13, SDG = 8;                 // board in cells, grains per cell side
-const GW = SDW * SDG, GH = SDH * SDG;             // 56 x 104 grains
+const SDW = 9, SDH = 14, SDG = 8;                 // board in cells, grains per cell side (9 wide: flat stacking alone no longer wins)
+const GW = SDW * SDG, GH = SDH * SDG;             // 72 x 112 grains
 const SD_DIFF = [['Kolay', '3 renk. Aynı rengi yan yana getirmek kolay.'], ['Orta', '4 renk. Dengeli bir oyun.'], ['Zor', '5 renk. Plan yapmadan temizlemek zor.']];
 const SD_COLS = [[0, 3, 4], [0, 2, 3, 4], [0, 2, 3, 4, 6]];   // palette colours per difficulty
 const SD_SAME = [0.5, 0.5, 0.45];   // chance the next block repeats the last colour (never 3 in a row)
-const SD_BIG = [10, 12, 15];                                  // a one-colour patch this many cells big bursts even without reaching both walls
+const SD_SPAN = SDW;   // a wall-to-wall patch needs a full row's worth of cells: a thin skin poured over a heap no longer counts
+const SD_BIG = [13, 16, 19];                                  // a one-colour patch this many cells big bursts even without reaching both walls
 const SD_WAIT = 300, SD_FLASH = 300;                          // ms: one colour joins wall to wall -> it bursts this much later, always; burst flash
 const SD_SPEED = [2.2, 3, 4.2];                               // falling speed in cells per second at the start
 const SD_SHADE = [1.1, 1.02, 0.94, 0.86];                     // grain tints, so sand looks grainy
@@ -3664,8 +3665,8 @@ function sdStep(){   // one tick of falling sand, bottom row first, only the row
   if (moved) SA.dirty = true;
   return moved;
 }
-function sdFindBursts(){   // every one-colour patch (corners count) that touches both side walls, or that has grown big
-  const g = SA.g, seen = SA.seen, st = SA.stack, cb = SA.cb, out = [], big = SD_BIG[SA.diff] * SDG * SDG;
+function sdFindBursts(){   // every one-colour patch (corners count) that touches both side walls and is a row's worth of sand, or that has grown big
+  const g = SA.g, seen = SA.seen, st = SA.stack, cb = SA.cb, out = [], big = SD_BIG[SA.diff] * SDG * SDG, span = SD_SPAN * SDG * SDG;
   seen.fill(0);
   let cn = 0;
   for (let p0 = SA.top * GW; p0 < GW * GH; p0++) {
@@ -3687,7 +3688,7 @@ function sdFindBursts(){   // every one-colour patch (corners count) that touche
         }
       }
     }
-    if ((left && right) || cn - start >= big) out.push(cb.slice(start, cn)); else cn = start;
+    if ((left && right && cn - start >= span) || cn - start >= big) out.push(cb.slice(start, cn)); else cn = start;
   }
   return out;
 }
