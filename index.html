@@ -1371,7 +1371,6 @@ let grid = Array(N * N).fill(null), gems = Array(N * N).fill(false);
 let iceHp = Array(N * N).fill(0), iceFx = Array(N * N).fill(0);
 let tray = [null, null, null], trayFit = [false, false, false];
 let score = 0, shown = 0, combo = 0, sinceClear = 0, over = false, won = false, overT0 = 0;
-const COMBO_MS = 3000;   // a combo breaks when nothing pops for this long (the shared-board mode counts moves instead, since turns alternate)
 let comboT = 0;
 let goalCount = 0, goalShown = 0, moves = 0;
 let landA = Array(N * N).fill(null), clearA = Array(N * N).fill(null);
@@ -1446,7 +1445,7 @@ function shuffled(rand){ const a = [0, 1, 2, 3, 4, 5, 6]; for (let i = a.length 
 // how each endless difficulty deals (tuned with a bot: casual median ~730 trays on easy, ~230 medium, ~110 hard;
 // about a quarter of dealt pieces are big, 5+ cells, as in Block Blast):
 // all = the three pieces can always be placed together; each = every piece fits somewhere;
-// help = chance the tray must contain a piece that completes a line; rescue = once this many cells are full, always help;
+// help = (old rule, now handled by CLEAR_IN finishers below); rescue = once this many cells are full, always deal a finisher;
 // pick = deal the best of this many valid trays (most lines cleared, emptiest board after); crowd = cells full before easy shrinks its pieces;
 // big = chance the tray must hold a 5+ cell piece while fewer than bigMax cells are full
 const TRAY_RULE = [{ all: 1, help: 1, pick: 24, crowd: 18, big: 0.75, bigMax: 26 }, { all: 1, help: 1, rescue: 20, pick: 6, big: 0.55, bigMax: 30 }, { all: 1, help: 0.8, rescue: 25, pick: 3, big: 0.6, bigMax: 32 }];
@@ -1477,14 +1476,55 @@ function clearsG(g, p){   // can p complete a row or column somewhere on g?
   }
   return false;
 }
+// Block Blast style dealing: when a clear is due, one piece of the tray is picked to finish a line right away.
+// CLEAR_IN = a line should pop within this many placements of the last one (easy 2, medium 3, hard 4; adventure 3)
+const CLEAR_IN = [2, 3, 4], CLEAR_NOW = [6, 3, 0];
+function finishers(g, wts){   // every shape that completes a row or column somewhere on g, with the most lines it can pop at once
+  const out = [];
+  for (let k = 0; k < SH.length; k++) {
+    if (wts && !(wts[k] > 0)) continue;
+    const sh = SH[k]; let most = 0;
+    for (let r = 0; r + sh.h <= N; r++) for (let c = 0; c + sh.w <= N; c++) {
+      if (!fitsG(g, { s: k }, r, c)) continue;
+      const h = g.slice();
+      for (const [y, x] of sh.cells) h[(r + y) * N + c + x] = 0;
+      const { rows, cols } = fullLines(h);
+      most = Math.max(most, rows.length + cols.length);
+    }
+    if (most) out.push({ s: k, n: most, w: (wts ? wts[k] : SH[k].wt) * most * most });   // multi-line finishers come up more often
+  }
+  out.total = out.reduce((x, f) => x + f.w, 0);
+  return out;
+}
+const STRAIGHT = [[], [], []];   // STRAIGHT[1][L] = row piece of length L, STRAIGHT[2][L] = column piece
+SH.forEach((sh, k) => { if (sh.cells.length === Math.max(sh.w, sh.h) && (sh.w === 1 || sh.h === 1)) { if (sh.h === 1) STRAIGHT[1][sh.w] = k; if (sh.w === 1) STRAIGHT[2][sh.h] = k; } });
+function lineKit(g){   // no single piece finishes a line: two straight pieces that fill the two gaps of a nearly full row or column
+  let best = null;
+  for (let l = 0; l < N * 2; l++) {
+    const row = l < N, segs = []; let run = 0, gaps = 0;
+    for (let i = 0; i <= N; i++) {
+      const empty = i < N && g[row ? l * N + i : i * N + (l - N)] === null;
+      if (empty) { run++; gaps++; } else if (run) { segs.push(run); run = 0; }
+    }
+    if (segs.length !== 2 || segs.some(L => L > 5)) continue;
+    if (!best || gaps < best.gaps || (gaps === best.gaps && Math.random() < 0.5)) best = { gaps, kit: segs.map(L => STRAIGHT[row ? 1 : 2][L]) };
+  }
+  return best ? best.kit : null;
+}
+function pickFinisher(fs){ let r = Math.random() * fs.total; for (const f of fs) { r -= f.w; if (r <= 0) return f.s; } return fs[fs.length - 1].s; }
+const clearDue = target => sinceClear >= target - 2;   // deal a finisher early enough that the line can pop in time
 function endlessTray(){
   const R = TRAY_RULE[endDiff], filled = grid.filter(v => v !== null).length;
-  const wts = DIFF_W[R.crowd && filled >= R.crowd ? 3 : endDiff], help = R.rescue && filled >= R.rescue ? 1 : R.help;
+  const wts = DIFF_W[R.crowd && filled >= R.crowd ? 3 : endDiff];
+  const due = filled >= 5 && (clearDue(CLEAR_IN[endDiff]) || (R.rescue && filled >= R.rescue));
+  const fin = due ? finishers(grid, wts) : [], kit = due && !fin.length ? lineKit(grid) : null;
   let okF = null, okB = null, fb = null, bestV = -Infinity, bestSet = null, got = 0;
   afLeft = 12000;
   for (let a = 0; a < 60; a++) {
     const cols = shuffled(Math.random);
     const set = [0, 1, 2].map(i => ({ s: pickShape(Math.random, wts), color: cols[i] }));
+    if (fin.length) set[Math.floor(Math.random() * 3)].s = pickFinisher(fin);   // one piece always finishes a line
+    else if (kit) { const at = Math.floor(Math.random() * 3); set[at].s = kit[0]; set[(at + 1 + Math.floor(Math.random() * 2)) % 3].s = kit[1]; }   // or two pieces do
     const f = set.map(fitsAnywhere);
     if (!f.some(Boolean)) continue;
     if (!fb) fb = set;
@@ -1493,10 +1533,9 @@ function endlessTray(){
     if (!okF) okF = set;
     const bigOk = !(R.big && filled < R.bigMax && Math.random() < R.big) || set.some(q => SH[q.s].cells.length >= 5);
     if (bigOk && !okB) okB = set;   // fallback that still honours the big-piece rule (an empty board has no line to help with)
-    if (help && Math.random() < help && !set.some(q => clearsG(grid, q))) continue;
     if (!bigOk) continue;
     if (!(R.pick > 1)) return set;
-    const v = trayValue(grid, set);
+    const v = trayValue(grid, set) + CLEAR_NOW[endDiff] * set.filter(q => clearsG(grid, q)).length;   // easier levels favour pieces that pop lines right away
     if (v > bestV) { bestV = v; bestSet = set; }
     if (++got >= R.pick) break;
   }
@@ -1507,10 +1546,14 @@ function newTray(){
   if (rng) { const cols = shuffled(rng); return [0, 1, 2].map(i => ({ s: pickShape(rng, DIFF_W[1]), color: cols[i] })); }   // seeded duels: medium mix, more big pieces
   const wts = mode === 'endless' ? DIFF_W[endDiff] : null, hard = mode === 'endless' && endDiff === 2;
   let fallback = null, okFallback = null;
+  const fin = mode === 'level' && grid.filter(v => v !== null).length >= 5 && clearDue(3) ? finishers(grid, null) : [];   // adventure: a line every 3 placements
+  const kit = mode === 'level' && !fin.length && grid.filter(v => v !== null).length >= 5 && clearDue(3) ? lineKit(grid) : null;
   afLeft = 12000;
   for (let a = 0; a < 40; a++) {
     const cols = shuffled(Math.random);
     const set = [0, 1, 2].map(i => ({ s: pickShape(Math.random, wts), color: cols[i] }));
+    if (fin.length) set[Math.floor(Math.random() * 3)].s = pickFinisher(fin);
+    else if (kit) { const at = Math.floor(Math.random() * 3); set[at].s = kit[0]; set[(at + 1 + Math.floor(Math.random() * 2)) % 3].s = kit[1]; }
     const f = set.map(fitsAnywhere);
     if (!f.some(Boolean)) continue;
     if (hard) return set;
@@ -1609,7 +1652,7 @@ function updateCombo(bump){
     comboEl.classList.remove('off');
     comboTxt.textContent = combo >= 2 ? tt('Kombo {0}', combo - 1) : tt('Kombo');
     dots.forEach((d, i) => d.classList.toggle('on', i < 3 - sinceClear));
-    comboEl.classList.toggle('timed', mode !== 'shared');
+    comboEl.classList.remove('timed');
     if (bump) { bumpEl(comboEl); const bar = $('comboBar'); bar.classList.remove('run'); void bar.offsetWidth; bar.classList.add('run'); }
   } else comboEl.classList.add('off');
 }
@@ -1813,8 +1856,7 @@ function place(d, pv, pos, t){
   const ccx = pv.c + sh.w / 2, ccy = pv.r + sh.h / 2;
   let gemsHit = 0, iceBroken = 0;
   if (n > 0) {
-    combo += 1; sinceClear = 0;
-    if (mode !== 'shared') { clearTimeout(comboT); comboT = setTimeout(bindP(() => { combo = 0; updateCombo(false); }), COMBO_MS); }
+    combo += 1; sinceClear = 0;   // a combo lasts while a line pops within 3 placements, like Block Blast (no clock)
     const pts = 40 * n * (n + 1) / 2 * 2 * combo;   // 1 line 80, 2 lines 240, 3 lines 480, times combo
     gained += pts;
     const start = t + 110;
@@ -1859,7 +1901,7 @@ function place(d, pv, pos, t){
     }
   } else {
     sinceClear += 1;
-    if (mode === 'shared' && sinceClear >= 3) combo = 0;
+    if (sinceClear >= 3) combo = 0;
     sfx.place();
   }
   score += gained;
