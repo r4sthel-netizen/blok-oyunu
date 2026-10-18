@@ -1795,15 +1795,23 @@ function grab(e, { x, y }){
   const t = now(), cur = trayPos(i, t);
   if (cur.s <= 0.01) cur.s = slotHome(i).s;
   slotA[i] = null;
-  drag = { i, p, id: e.pointerId, x, y, ax: x, ay: y, k: e.pointerType === 'mouse' ? 1 : DRAG_K, t0: t, fx: cur.x, fy: cur.y, fs: cur.s,
-           lift: e.pointerType === 'mouse' ? 0 : Math.max(cs * 1.9, 64) };
+  // two players: each half is short and its board runs close to the screen edge, so the piece sits less far above the finger
+  // and travels further per finger move; otherwise the far rows would need the finger past the edge of the phone
+  const mouse = e.pointerType === 'mouse', two = isSplit();
+  drag = { i, p, id: e.pointerId, x, y, ax: x, ay: y, k: mouse ? 1 : two ? SPLIT_K : DRAG_K, t0: t, fx: cur.x, fy: cur.y, fs: cur.s,
+           lift: mouse ? 0 : two ? Math.max(cs * 1.1, 36) : Math.max(cs * 1.9, 64) };
   sfx.pick(); buzz(6);
   if (mode !== 'tut') hint = null;   // the tutorial keeps showing the spot
   idleSince = t;
   updatePreview();
 }
-const DRAG_K = 1.2;
-function dragTo(q){ drag.x = Math.max(0, Math.min(W, drag.ax + (q.x - drag.ax) * drag.k)); drag.y = Math.max(0, Math.min(H + drag.lift, drag.ay + (q.y - drag.ay) * drag.k)); }
+const DRAG_K = 1.2, SPLIT_K = 1.5;
+function dragTo(q){   // the screen's sides and bottom are walls (and, with two players, the middle line): the piece never leaves the phone
+  const sh = SH[drag.p.s], hw = (sh.w * pitch - gap) / 2, hh = (sh.h * pitch - gap) / 2, m = 3;
+  drag.x = Math.max(m + hw, Math.min(W - m - hw, drag.ax + (q.x - drag.ax) * drag.k));
+  const top = (isSplit() ? H / 2 : 0) + m + drag.lift + hh, bottom = H - m + drag.lift - hh;
+  drag.y = Math.max(top, Math.min(bottom, drag.ay + (q.y - drag.ay) * drag.k));
+}
 let cvRect = null;   // canvas position, read once per drag instead of on every finger move
 cv.addEventListener('pointermove', e => {
   if (isSplit()) { const i = spOf(e); if (i >= 0) asP(i, () => { kick(); dragTo(spPt(e, i)); updatePreview(); }); return; }
@@ -2704,6 +2712,12 @@ function splitFrame(t, dt){
     splitStrip(i, t);
     drawScene(t, dt);
     ctx.restore();
+  }));
+  // pieces being dragged go over everything, so one pulled past the middle never slips under the other player's half
+  [0, 1].forEach(i => asP(i, () => {
+    if (!drag) return;
+    TF = i ? [-dpr, 0, 0, -dpr, W * dpr, H * dpr] : [dpr, 0, 0, dpr, 0, 0];
+    ctx.setTransform(...TF); drawDrag(t);
   }));
   TF = [dpr, 0, 0, dpr, 0, 0];
 }
@@ -4477,6 +4491,14 @@ function frame(){
   drawScene(t, dt);
   if (mode === 'tut') tutHand(t);
 }
+function drawDrag(t){   // the piece in the player's fingers, with its shadow
+  const q = dragPos(t), sh = SH[drag.p.s], size = cs * q.s;
+  const x0 = q.x - (sh.w * pitch - gap) * q.s / 2, y0 = q.y - (sh.h * pitch - gap) * q.s / 2, so = size * 0.8;
+  ctx.globalAlpha = 0.6;
+  for (const [y, x] of sh.cells) ctx.drawImage(shadowSprite, x0 + x * pitch * q.s + size / 2 - so, y0 + y * pitch * q.s + size * 0.68 - so, so * 2, so * 2);
+  ctx.globalAlpha = 1;
+  drawPiece(drag.p, q.x, q.y, q.s, 1, false);
+}
 function drawScene(t, dt){   // one board: blocks, effects, tray, dragged piece and texts, drawn on top of TF
   shake *= Math.exp(-dt * 11);
   const sx = shake > 0.3 ? (Math.random() - 0.5) * 2 * shake : 0, sy = shake > 0.3 ? (Math.random() - 0.5) * 2 * shake : 0;
@@ -4591,14 +4613,7 @@ function drawScene(t, dt){   // one board: blocks, effects, tray, dragged piece 
     drawPiece(p, q.x, q.y, q.s * hb, !fit ? 0.4 : theirs ? 0.6 : 1, !fit);
   }
 
-  if (drag) {
-    const q = dragPos(t), sh = SH[drag.p.s], size = cs * q.s;
-    const x0 = q.x - (sh.w * pitch - gap) * q.s / 2, y0 = q.y - (sh.h * pitch - gap) * q.s / 2, so = size * 0.8;
-    ctx.globalAlpha = 0.6;
-    for (const [y, x] of sh.cells) ctx.drawImage(shadowSprite, x0 + x * pitch * q.s + size / 2 - so, y0 + y * pitch * q.s + size * 0.68 - so, so * 2, so * 2);
-    ctx.globalAlpha = 1;
-    drawPiece(drag.p, q.x, q.y, q.s, 1, false);
-  }
+  if (drag && !isSplit()) drawDrag(t);   // two players: drawn last, over both halves (splitFrame)
 
   for (let k = floats.length - 1; k >= 0; k--) {
     const f = floats[k], e = (t - f.t0) / f.dur;
