@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://*.firebasedatabase.app; connect-src 'self' https://*.googleapis.com https://*.firebasedatabase.app wss://*.firebasedatabase.app; style-src 'unsafe-inline'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1a2574">
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:,">
+<link rel="canonical" href="https://blopugames.com/oyun/">
+<title>Blopu · blopugames.com</title>
+<style>
+html,body{margin:0; height:100%; background:#1a2574; color:#fff; font:700 18px/1.4 system-ui,sans-serif}
+body{display:grid; place-items:center; text-align:center; padding:24px; box-sizing:border-box}
+h1{margin:0 0 8px; font-size:34px; color:#ffd84d}
+p{margin:0 0 18px; color:#c9d3ff}
+a{display:inline-block; padding:14px 22px; border-radius:16px; background:#ffd84d; color:#5a2a00; text-decoration:none; font-weight:800; visibility:hidden}
+.show a{visibility:visible}
+</style>
+</head>
+<body>
+<div><h1>Blopu</h1><p id="t">blopugames.com</p><a id="go" href="https://blopugames.com/oyun/">blopugames.com</a></div>
+<script type="module">
+// The game has moved to blopugames.com. This page stays at the old address for good: it carries the progress saved on this
+// phone (which belongs to this address and can't be read from the new one) over to the new address in the link.
+const NEW = 'https://blopugames.com/oyun/';
+const SDK = 'https://www.gstatic.com/firebasejs/13.0.0/';
+const CFG = { apiKey: 'AIzaSyAvqjOvJAfOe72ty_WEEVs358egh3cBpVk', authDomain: 'blopu-3bab2.firebaseapp.com', projectId: 'blopu-3bab2',
+  storageBucket: 'blopu-3bab2.firebasestorage.app', messagingSenderId: '1038010432120', appId: '1:1038010432120:web:902f63b93c83f73277cb8d' };
+const RTDB = 'https://blopu-3bab2-default-rtdb.europe-west1.firebasedatabase.app';
+const MSG = { tr: 'Blopu yeni adresine taşınıyor…', en: 'Blopu is moving to its new home…', de: 'Blopu zieht um…', fr: 'Blopu déménage…', es: 'Blopu se muda…', pt: 'O Blopu está de mudança…', ru: 'Blopu переезжает…', ar: 'Blopu تنتقل إلى عنوانها الجديد…' };
+let LS = null; try { LS = localStorage; } catch (e) {}
+const lang = (LS && LS.getItem('blokpatlat_lang')) || (navigator.language || 'en').slice(0, 2);
+document.getElementById('t').textContent = MSG[lang] || MSG.en;
+setTimeout(() => document.body.classList.add('show'), 8000);
+const keys = LS ? Object.keys(LS).filter(k => k.startsWith('blokpatlat_') && !k.startsWith('blokpatlat_rank_')) : [];
+const wait = (p, ms) => Promise.race([p, new Promise(r => setTimeout(r, ms))]);
+
+// A guest account can't follow to the new address (the new address makes a new one), so its leaderboard row and friend
+// data are removed here, or the player would show twice. A Google account is kept: signing in on the new address brings it back.
+async function oldAccount(){
+  const [M, A] = await Promise.all([import(SDK + 'firebase-app.js'), import(SDK + 'firebase-auth.js')]);
+  const app = M.initializeApp(CFG), auth = A.getAuth(app);
+  const user = await new Promise(res => { const off = A.onAuthStateChanged(auth, u => { off(); res(u); }); });
+  if (!user) return 0;
+  if (user.providerData.some(p => p.providerId === 'google.com')) return 1;
+  const uid = user.uid;
+  const [S, D] = await Promise.all([import(SDK + 'firebase-firestore-lite.js'), import(SDK + 'firebase-database.js')]);
+  const db = D.getDatabase(app, RTDB), r = p => D.ref(db, p), del = p => D.remove(r(p)).catch(() => {});
+  const kids = async p => { try { return Object.keys((await D.get(r(p))).val() || {}); } catch (e) { return []; } };
+  const [friends, invs] = await Promise.all([kids('fl/' + uid), kids('inv/' + uid)]);
+  await Promise.all([S.deleteDoc(S.doc(S.getFirestore(app), 'players', uid)).catch(() => {}),
+    ...friends.flatMap(f => [del(`fl/${f}/${uid}`), del(`fl/${uid}/${f}`)]), ...invs.map(f => del(`inv/${uid}/${f}`)), del('u/' + uid), del('on/' + uid)]);
+  D.goOffline(db);
+  return 0;
+}
+
+let g = 0;
+if (keys.length) { try { g = (await wait(oldAccount().catch(() => 0), 7000)) || 0; } catch (e) {} }
+let url = NEW;
+if (keys.length) {
+  const k = {}; keys.forEach(x => { k[x] = LS.getItem(x); });
+  const b64 = btoa(unescape(encodeURIComponent(JSON.stringify({ v: 1, g, k })))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  url = NEW + '#tasi=' + b64;
+}
+document.getElementById('go').href = url;
+location.replace(url);
+</script>
+</body>
+</html>
